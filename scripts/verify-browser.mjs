@@ -43,9 +43,16 @@ function wait(milliseconds) {
 async function stopChild(child) {
   if (!child || child.exitCode !== null || child.signalCode !== null) return;
   child.kill("SIGTERM");
+  const stopped = await Promise.race([
+    new Promise((resolve) => child.once("exit", () => resolve(true))),
+    wait(1_000).then(() => false),
+  ]);
+  if (stopped || child.exitCode !== null || child.signalCode !== null) return;
+
+  child.kill("SIGKILL");
   await Promise.race([
     new Promise((resolve) => child.once("exit", resolve)),
-    wait(3_000),
+    wait(1_000),
   ]);
 }
 
@@ -149,7 +156,7 @@ class CdpClient {
   }
 
   close() {
-    this.socket.close();
+    if (this.socket?.readyState === WebSocket.OPEN) this.socket.close();
   }
 }
 
@@ -487,6 +494,16 @@ try {
     overflow: result.overflow,
   })));
 } finally {
+  if (client) {
+    try {
+      await Promise.race([
+        client.send("Browser.close"),
+        wait(1_000),
+      ]);
+    } catch {
+      // The DevTools socket can close before acknowledging Browser.close.
+    }
+  }
   client?.close();
   await Promise.all([stopChild(chrome), stopChild(preview)]);
   cleanupProfile();

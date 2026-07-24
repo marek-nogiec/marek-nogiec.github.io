@@ -41,20 +41,22 @@ is one static landing page with no application framework.
 After any source or build change, run:
 
 ```bash
-npm run verify
-npm run verify:browser
+npm run verify:all
 ```
 
-`npm run verify` first checks that static page content still matches the
-committed font manifest, then builds the site, asserts the exact two-file
-artifact contract, checks HTML/font/combined transfer budgets, and runs
-negative verifier fixtures.
+`npm run verify:all` first checks that static page content still matches the
+committed font manifest, then builds the site once, asserts the exact two-file
+artifact contract, checks HTML/font/combined transfer budgets, runs negative
+verifier fixtures, and verifies the built artifact in Chrome.
 
-`npm run verify:browser` starts the production preview and uses installed Chrome
-through the DevTools protocol. It checks 390, 959, 960, 1024, 1199, 1200, and 1440px
-viewports; typography continuity; overflow; target sizes; semantic landmarks;
-theme state/persistence; both-theme contrast; reduced motion; permitted network
-hosts; accessibility-tree isolation; and measurement-row adjacency.
+`npm run verify:browser` remains the safe standalone browser command: it builds
+before starting the production preview. CI and `verify:all` use the internal
+`verify:browser:built` command after their existing build. Browser verification
+uses installed Chrome through the DevTools protocol. It checks 390, 959, 960,
+1024, 1199, 1200, and 1440px viewports; typography continuity; overflow; target
+sizes; semantic landmarks; theme state/persistence; both-theme contrast;
+reduced motion; permitted network hosts; accessibility-tree isolation; and
+measurement-row adjacency.
 
 CI additionally runs three mobile Lighthouse passes using `lighthouserc.json`.
 `scripts/ci-report.mjs` writes the same artifact/Lighthouse report to the Actions

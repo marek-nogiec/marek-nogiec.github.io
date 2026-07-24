@@ -23,9 +23,11 @@
     "fonts:build": "python3 scripts/build-font-subset.py",
     "fonts:verify": "python3 scripts/build-font-subset.py --check",
     "test": "node --test scripts/*.test.mjs",
-    "verify:browser": "npm run build && node scripts/verify-browser.mjs",
+    "verify:browser:built": "node scripts/verify-browser.mjs",
+    "verify:browser": "npm run build && npm run verify:browser:built",
     "verify:dist": "node scripts/verify-dist.mjs",
-    "verify": "npm run fonts:verify && rsbuild build && node scripts/verify-dist.mjs && npm test"
+    "verify": "npm run fonts:verify && rsbuild build && node scripts/verify-dist.mjs && npm test",
+    "verify:all": "npm run verify && npm run verify:browser:built"
   },
   "devDependencies": {
     "@rsbuild/core": "^2.1.8"
