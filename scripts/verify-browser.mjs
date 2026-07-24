@@ -34,6 +34,15 @@ function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+async function stopChild(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  child.kill("SIGTERM");
+  await Promise.race([
+    new Promise((resolve) => child.once("exit", resolve)),
+    wait(3_000),
+  ]);
+}
+
 async function waitFor(predicate, description, timeout = 15_000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
@@ -365,7 +374,11 @@ try {
   })));
 } finally {
   client?.close();
-  chrome?.kill("SIGTERM");
-  preview.child.kill("SIGTERM");
-  rmSync(PROFILE, { recursive: true, force: true });
+  await Promise.all([stopChild(chrome), stopChild(preview.child)]);
+  rmSync(PROFILE, {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 100,
+  });
 }
