@@ -42,8 +42,9 @@ npm run lint:commit      # validate the latest commit message
 npm run lint:commits     # validate branch commits after origin/main
 npm run fonts:verify      # ensure page text and committed subset still match
 npm run fonts:build       # regenerate subset (requires requirements-fonts.txt)
+npm run browser:install   # install Playwright's pinned Chromium headless shell
 npm run verify           # build, artifact contract, budgets, negative fixtures
-npm run verify:browser   # responsive/a11y/network checks in installed Chrome
+npm run verify:browser   # responsive/a11y/network checks in the headless shell
 npm run verify:all       # build once, then run every static and browser check
 ```
 
@@ -137,6 +138,7 @@ under the SIL Open Font License 1.1 in `fonts/OFL.txt`.
 | `scripts/content.test.mjs` | Catalog completeness and no-duplicate-copy gate |
 | `scripts/build-font-subset.py` | Catalog reader, drift gate, and deterministic subset generator |
 | `scripts/verify-dist.mjs` | Two-file/resource/budget verifier |
-| `scripts/verify-browser.mjs` | Dependency-free Chrome/CDP browser checks |
+| `scripts/verify-browser.spec.mjs` | Playwright browser checks against the production preview |
+| `playwright.config.mjs` | One-worker Chromium headless-shell configuration |
 | `scripts/ci-report.mjs` | Shared Actions and pull-request report generator |
 | `lighthouserc.json` | Repeat-run Lighthouse budgets |
