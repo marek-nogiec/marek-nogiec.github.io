@@ -15,6 +15,10 @@ is one static landing page with no application framework.
   `dist/index.html` and emits one content-hashed Space Grotesk WOFF2 beside it.
   Verification rejects every other output file, local asset, or cross-origin
   runtime request.
+- **Edit user-facing text only in `src/content/en.json`.** `src/index.html` is
+  a build-time Lodash template and must use escaped `<%- copy.* %>`
+  interpolation. Rsbuild resolves the catalog completely during compilation;
+  neither the catalog nor localization machinery ships to the browser.
 - The DOM-dependent entry script must remain injected at the end of `<body>`
   (`html.inject: "body"` and `html.scriptLoading: "blocking"`).
 - Desktop layout uses 21 rows of 32 design px, 672 design-px content height,
@@ -83,5 +87,8 @@ LCP <1.8s, CLS <0.01, and TBT <50ms.
   `fonts/space-grotesk-subset.json` are generated together.
 - After changing visible page copy, install `requirements-fonts.txt` and run
   `npm run fonts:build`; do not hand-edit the manifest.
+- `scripts/build-font-subset.py` lists the semantic catalog fields rendered in
+  Space Grotesk. Add a field there when new custom-font copy is introduced;
+  metadata and UI-monospace fields remain excluded.
 - Monospace UI and all dynamic measurement digits use the system
   `ui-monospace` stack and are intentionally excluded from the custom subset.

@@ -1,4 +1,10 @@
+import { readFileSync } from "node:fs";
+
 import { defineConfig } from "@rsbuild/core";
+
+const copy = JSON.parse(
+  readFileSync(new URL("./src/content/en.json", import.meta.url), "utf8"),
+);
 
 const preloadSubsetFont = {
   name: "preload-subset-font",
@@ -31,12 +37,22 @@ const preloadSubsetFont = {
 
 export default defineConfig({
   plugins: [preloadSubsetFont],
+  dev: {
+    // The catalog is read by the config rather than imported into the browser
+    // graph, so editing copy needs a config/server reload during development.
+    watchFiles: {
+      paths: "./src/content/*.json",
+      type: "reload-server",
+    },
+  },
   server: {
     // honor the harness-assigned port in sandboxed dev sessions
     port: process.env.PORT ? Number(process.env.PORT) : 3000,
   },
   html: {
     template: "./src/index.html",
+    // All user-facing copy is resolved into the static HTML at build time.
+    templateParameters: { copy },
     // the page script queries the DOM directly, so it must run after the markup
     inject: "body",
     scriptLoading: "blocking",

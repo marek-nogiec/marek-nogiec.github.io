@@ -20,7 +20,7 @@
     "build": "rsbuild build",
     "preview": "rsbuild preview",
     "fonts:build": "python3 scripts/build-font-subset.py",
-    "fonts:verify": "node scripts/font-glyphs.mjs --check",
+    "fonts:verify": "python3 scripts/build-font-subset.py --check",
     "test": "node --test scripts/*.test.mjs",
     "verify:browser": "npm run build && node scripts/verify-browser.mjs",
     "verify:dist": "node scripts/verify-dist.mjs",
