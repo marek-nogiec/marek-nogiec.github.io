@@ -4,6 +4,16 @@ Personal homepage built as an aggressively small, progressively enhanced static
 page. There is no framework, hydration, application state, analytics, or remote
 JavaScript.
 
+## Local setup
+
+Use Node.js 22.12–25 and npm 10.9–11. The pinned major version is recorded in
+`.nvmrc`; install dependencies without running package lifecycle scripts:
+
+```bash
+nvm use
+npm ci --ignore-scripts
+```
+
 ## Production architecture
 
 - All user-facing copy lives in `src/content/en.json`. Rsbuild resolves it into
@@ -75,17 +85,35 @@ CI runs three additional mobile Lighthouse passes with these budgets:
 
 Every run publishes a Markdown job summary with check outcomes, exact artifact
 sizes versus their budgets, median/range Lighthouse scores, Core Web Vitals lab
-metrics, and required accessibility/SEO audits. Pull-request runs update one
-bot comment with the same report instead of adding a new comment on every push.
+metrics, and required accessibility/SEO audits. Lighthouse reports stay on the
+runner and are not uploaded as retained artifacts. Owner and Dependabot
+pull-request runs update one bot comment with the same report instead of adding
+a new comment on every push.
 
 ## Deployment
 
-The GitHub workflow verifies pull requests and pushes to `main`, but never
-deploys automatically. Publishing requires a manual workflow dispatch with the
-`deploy` input enabled.
+The GitHub workflow verifies owner and Dependabot pull requests plus pushes to
+`main`, but never deploys automatically. Publishing requires a manual workflow
+dispatch with the `deploy` input enabled from `main`; dispatches from other
+branches cannot package or deploy the site.
 
 The repository may remain private with GitHub Pages disabled. Enabling Pages is
 a separate release decision; merging code alone cannot expose the site.
+
+## Project policy
+
+This is a personal, owner-maintained homepage rather than a community project.
+Issues and unsolicited pull requests are not accepted. Security-relevant
+reports should follow `SECURITY.md`.
+
+## License
+
+Copyright © 2026 Marek Nogiec.
+
+The homepage source is licensed under the GNU General Public License,
+version 3 or (at your option) any later version (`GPL-3.0-or-later`); see
+`LICENSE`. Space Grotesk and its generated subset remain separately licensed
+under the SIL Open Font License 1.1 in `fonts/OFL.txt`.
 
 ## Repository layout
 
