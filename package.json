@@ -1,0 +1,16 @@
+{
+  "name": "marek-nogiec.github.io",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Personal homepage, served via GitHub Pages",
+  "type": "module",
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "preview": "rsbuild preview",
+    "verify": "rsbuild build && node scripts/verify-dist.mjs"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^2.1.7"
+  }
+}
