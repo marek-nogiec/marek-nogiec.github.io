@@ -73,6 +73,11 @@ CI runs three additional mobile Lighthouse passes with these budgets:
 - CLS <0.01
 - TBT <50ms
 
+Every run publishes a Markdown job summary with check outcomes, exact artifact
+sizes versus their budgets, median/range Lighthouse scores, Core Web Vitals lab
+metrics, and required accessibility/SEO audits. Pull-request runs update one
+bot comment with the same report instead of adding a new comment on every push.
+
 ## Deployment
 
 The GitHub workflow verifies pull requests and pushes to `main`, but never
@@ -95,4 +100,5 @@ a separate release decision; merging code alone cannot expose the site.
 | `scripts/build-font-subset.py` | Catalog reader, drift gate, and deterministic subset generator |
 | `scripts/verify-dist.mjs` | Two-file/resource/budget verifier |
 | `scripts/verify-browser.mjs` | Dependency-free Chrome/CDP browser checks |
+| `scripts/ci-report.mjs` | Shared Actions summary and pull-request report generator |
 | `lighthouserc.json` | Repeat-run Lighthouse budgets |

@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 
 const DEFAULT_DIST = fileURLToPath(new URL("../dist/", import.meta.url));
 const LOCAL_BASE = "https://local.invalid/";
-const BUDGETS = {
+export const DIST_BUDGETS = {
   raw: 24 * 1024,
   gzip: 8 * 1024,
   brotli: 7 * 1024,
@@ -226,17 +226,17 @@ export function verifyDist(distDirectory = DEFAULT_DIST) {
   const totalGzip = gzip + font;
   const totalBrotli = brotli + font;
 
-  check(raw <= BUDGETS.raw, `raw HTML budget exceeded: ${raw} > ${BUDGETS.raw} bytes`);
-  check(gzip <= BUDGETS.gzip, `gzip budget exceeded: ${gzip} > ${BUDGETS.gzip} bytes`);
-  check(brotli <= BUDGETS.brotli, `Brotli budget exceeded: ${brotli} > ${BUDGETS.brotli} bytes`);
-  check(font <= BUDGETS.font, `font budget exceeded: ${font} > ${BUDGETS.font} bytes`);
+  check(raw <= DIST_BUDGETS.raw, `raw HTML budget exceeded: ${raw} > ${DIST_BUDGETS.raw} bytes`);
+  check(gzip <= DIST_BUDGETS.gzip, `gzip budget exceeded: ${gzip} > ${DIST_BUDGETS.gzip} bytes`);
+  check(brotli <= DIST_BUDGETS.brotli, `Brotli budget exceeded: ${brotli} > ${DIST_BUDGETS.brotli} bytes`);
+  check(font <= DIST_BUDGETS.font, `font budget exceeded: ${font} > ${DIST_BUDGETS.font} bytes`);
   check(
-    totalGzip <= BUDGETS.totalGzip,
-    `total gzip + font budget exceeded: ${totalGzip} > ${BUDGETS.totalGzip} bytes`,
+    totalGzip <= DIST_BUDGETS.totalGzip,
+    `total gzip + font budget exceeded: ${totalGzip} > ${DIST_BUDGETS.totalGzip} bytes`,
   );
   check(
-    totalBrotli <= BUDGETS.totalBrotli,
-    `total Brotli + font budget exceeded: ${totalBrotli} > ${BUDGETS.totalBrotli} bytes`,
+    totalBrotli <= DIST_BUDGETS.totalBrotli,
+    `total Brotli + font budget exceeded: ${totalBrotli} > ${DIST_BUDGETS.totalBrotli} bytes`,
   );
 
   return {
