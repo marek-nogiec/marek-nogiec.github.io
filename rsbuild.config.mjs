@@ -9,9 +9,11 @@ export default defineConfig({
     template: "./src/index.html",
     // the page script queries the DOM directly, so it must run after the markup
     inject: "body",
+    scriptLoading: "blocking",
   },
   output: {
     // production ships as a single self-contained HTML file
+    cleanDistPath: true,
     inlineScripts: true,
     inlineStyles: true,
   },

@@ -3,63 +3,85 @@ import "./styles.css";
 (function () {
   "use strict";
 
-  /* ---------- theme: follow system, manual override via toggle ----------
-     The palette and toggle label are pure CSS (light-dark() + color-scheme);
-     the only job here is flipping the data-theme override. */
+  /* ---------- theme ---------- */
 
   var root = document.documentElement;
-  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  var mqDark = window.matchMedia("(prefers-color-scheme: dark)");
+  var themeToggle = document.getElementById("theme-toggle");
 
-  function effTheme() {
-    return root.dataset.theme || (mq.matches ? "dark" : "light");
+  function effectiveTheme() {
+    return root.dataset.theme || (mqDark.matches ? "dark" : "light");
   }
 
-  document.getElementById("theme-toggle").addEventListener("click", function () {
-    root.dataset.theme = effTheme() === "dark" ? "light" : "dark";
+  function syncThemeControl() {
+    var isDark = effectiveTheme() === "dark";
+    themeToggle.setAttribute("aria-pressed", String(isDark));
+    themeToggle.setAttribute(
+      "aria-label",
+      (isDark ? "Dark" : "Light") + " theme; switch to " + (isDark ? "light" : "dark") + " theme",
+    );
+  }
+
+  function storeTheme(theme) {
+    try {
+      localStorage.setItem("theme", theme);
+    } catch {
+      /* Storage can be unavailable in hardened/private browsing contexts. */
+    }
+  }
+
+  syncThemeControl();
+
+  themeToggle.addEventListener("click", function () {
+    var nextTheme = effectiveTheme() === "dark" ? "light" : "dark";
+    root.dataset.theme = nextTheme;
+    storeTheme(nextTheme);
+    syncThemeControl();
   });
 
-  /* ---------- vertical rhythm data ----------
-     Derived from the rendered grid, so the CSS/HTML grid-row values stay
-     the single source of truth. The g* spacer divs are the gap zones;
-     each element's [topGap, bottomGap] is its adjacent pair of spacers.
-     All values are DESIGN px (1rem = 10 design px, 32px rows) inside the
-     40px page margins — resize-invariant, since the whole layout scales
-     with the root font-size. CSS converts them back via * 0.1rem. */
+  mqDark.addEventListener("change", function () {
+    if (!root.dataset.theme) syncThemeControl();
+  });
+
+  /* ---------- measurement geometry ----------
+     Spacer rows remain the CSS/HTML source of truth. Geometry is derived only
+     after the critical render, or synchronously on the first interaction. */
 
   var page = document.getElementById("page");
   var content = document.querySelector(".content");
-
-  /* the mobile single-column layout has no rulers and no grid to measure */
-  var mqMobile = window.matchMedia("(max-width: 840px)");
-
-  /* right-column keys measure on the right ruler, the rest on the left */
-  var RIGHT = ["sub", "bio", "pageinfo", "gNavSub", "gSubBio", "gBioPage"];
+  var mqCompact = window.matchMedia("(max-width: 959px)");
+  var mqFinePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
 
   var GAPS = null;
+  var gapDerivationScheduled = false;
+
   function deriveGaps() {
     GAPS = {};
+
     var leftGaps = [];
     var rightGaps = [];
-    var elemTops = {};
-
-    var toDesign = 10 / parseFloat(getComputedStyle(root).fontSize);
-    var origin = content.getBoundingClientRect().top +
-      parseFloat(getComputedStyle(content).paddingTop);
+    var elements = {};
+    var rootSize = parseFloat(getComputedStyle(root).fontSize);
+    var contentStyle = getComputedStyle(content);
+    var contentRect = content.getBoundingClientRect();
+    var toDesign = 10 / rootSize;
+    var origin = contentRect.top + parseFloat(contentStyle.paddingTop);
+    var rightColumnStart = contentRect.left + contentRect.width * 2 / 3;
 
     document.querySelectorAll("[data-m]").forEach(function (el) {
       var rect = el.getBoundingClientRect();
       var top = Math.round((rect.top - origin) * toDesign);
       var key = el.dataset.m;
+      var side = rect.left >= rightColumnStart - 1 ? "r" : "l";
+
       if (/^g[A-Z]/.test(key)) {
         var gap = { top: top, h: Math.round(rect.height * toDesign) };
-        GAPS[key] = [gap];
-        /* side from the spacer's declared grid columns (columns 5+ are the
-           right block); declarative, so it needs no horizontal layout */
-        var cols = el.style.gridColumn.split("/");
-        if (parseInt(cols[0], 10) < 5) leftGaps.push(gap);
-        if (parseInt(cols[1] || cols[0], 10) > 5) rightGaps.push(gap);
-      } else if (!(key in elemTops) || top < elemTops[key]) {
-        elemTops[key] = top;
+        GAPS[key] = { gaps: [gap], side: side };
+
+        if (rect.left < rightColumnStart - 1) leftGaps.push(gap);
+        if (rect.right > rightColumnStart + 1) rightGaps.push(gap);
+      } else if (!(key in elements) || top < elements[key].top) {
+        elements[key] = { top: top, side: side };
       }
     });
 
@@ -67,65 +89,91 @@ import "./styles.css";
     leftGaps.sort(byTop);
     rightGaps.sort(byTop);
 
-    Object.keys(elemTops).forEach(function (key) {
-      var gaps = RIGHT.indexOf(key) >= 0 ? rightGaps : leftGaps;
-      var top = elemTops[key];
+    Object.keys(elements).forEach(function (key) {
+      var item = elements[key];
+      var candidates = item.side === "r" ? rightGaps : leftGaps;
       var above = null;
       var below = null;
-      gaps.forEach(function (gap) {
-        if (gap.top < top) above = gap;
+
+      candidates.forEach(function (gap) {
+        if (gap.top < item.top) above = gap;
         else if (!below) below = gap;
       });
-      GAPS[key] = [above, below];
+
+      GAPS[key] = { gaps: [above, below], side: item.side };
     });
 
     if (import.meta.env.DEV) {
       Object.keys(GAPS).forEach(function (key) {
-        GAPS[key].forEach(function (gap) {
-          if (gap) console.assert(gap.top % 32 === 0 && gap.h % 32 === 0, "off-grid gap for " + key, gap);
+        GAPS[key].gaps.forEach(function (gap) {
+          if (gap) {
+            console.assert(
+              gap.top % 32 === 0 && gap.h % 32 === 0,
+              "off-grid gap for " + key,
+              gap,
+            );
+          }
         });
       });
     }
   }
 
-  /* design-px gaps are resize-invariant, so one derivation suffices — it
-     just has to happen while the desktop layout is applied. Loading in the
-     mobile layout defers it to the first desktop interaction. */
-  if (!mqMobile.matches) deriveGaps();
+  function scheduleGapDerivation() {
+    if (mqCompact.matches || GAPS !== null || gapDerivationScheduled) return;
+    gapDerivationScheduled = true;
+
+    var run = function () {
+      gapDerivationScheduled = false;
+      if (!mqCompact.matches && GAPS === null) deriveGaps();
+    };
+
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(run, { timeout: 1500 });
+    } else {
+      setTimeout(run, 0);
+    }
+  }
 
   var brackets = {
     l: [document.getElementById("bracket-l0"), document.getElementById("bracket-l1")],
-    r: [document.getElementById("bracket-r0"), document.getElementById("bracket-r1")]
+    r: [document.getElementById("bracket-r0"), document.getElementById("bracket-r1")],
   };
 
   /* ---------- split-flap dials ---------- */
 
-  var DIGIT_STAGGER = 0.105; /* s per digit */
+  var DIGIT_STAGGER = 0.105;
 
   function makeDial() {
     var dial = document.createElement("span");
     dial.className = "dial";
+
     var strip = document.createElement("span");
     strip.className = "strip";
-    for (var d = 0; d <= 9; d++) {
+
+    for (var digitValue = 0; digitValue <= 9; digitValue += 1) {
       var digit = document.createElement("span");
-      digit.textContent = d;
+      digit.textContent = digitValue;
       strip.appendChild(digit);
     }
+
     dial.appendChild(strip);
     return dial;
   }
 
   function setLabelValue(labelEl, value) {
     var digits = String(value).split("");
-    while (labelEl.children.length > digits.length) labelEl.removeChild(labelEl.lastChild);
-    while (labelEl.children.length < digits.length) labelEl.appendChild(makeDial());
-    digits.forEach(function (ch, i) {
-      var strip = labelEl.children[i].firstChild;
-      strip.style.transitionDelay = (i * DIGIT_STAGGER).toFixed(2) + "s";
-      /* the strip is exactly 10 digits tall, so percentages of its own
-         height land on digits at any scale */
-      strip.style.transform = "translateY(" + (-Number(ch) * 10) + "%)";
+
+    while (labelEl.children.length > digits.length) {
+      labelEl.removeChild(labelEl.lastChild);
+    }
+    while (labelEl.children.length < digits.length) {
+      labelEl.appendChild(makeDial());
+    }
+
+    digits.forEach(function (character, index) {
+      var strip = labelEl.children[index].firstChild;
+      strip.style.transitionDelay = (index * DIGIT_STAGGER).toFixed(2) + "s";
+      strip.style.transform = "translateY(" + (-Number(character) * 10) + "%)";
     });
   }
 
@@ -134,80 +182,161 @@ import "./styles.css";
       el.classList.remove("on");
       return;
     }
-    if (el.style.getPropertyValue("--gap-top") === "") {
-      /* first placement: snap instead of animating in from 0/0 */
-      el.classList.add("no-anim");
-      void el.offsetWidth;
-    }
+
+    var isFirstPlacement = el.style.getPropertyValue("--gap-top") === "";
+    if (isFirstPlacement) el.classList.add("no-anim");
+
     el.style.setProperty("--gap-top", gap.top);
     el.style.setProperty("--gap-h", gap.h);
-    el.classList.remove("no-anim");
     setLabelValue(el.querySelector(".b-label"), gap.h);
     el.classList.add("on");
-  }
 
-  function showMeasurements(key) {
-    if (mqMobile.matches) return;
-    if (GAPS === null) deriveGaps();
-    var gaps = GAPS[key] || [];
-    var side = RIGHT.indexOf(key) >= 0 ? "r" : "l";
-    var other = side === "r" ? "l" : "r";
-    wake();
-    setBracket(brackets[side][0], gaps[0]);
-    setBracket(brackets[side][1], gaps[1]);
-    brackets[other][0].classList.remove("on");
-    brackets[other][1].classList.remove("on");
+    if (isFirstPlacement) {
+      requestAnimationFrame(function () {
+        el.classList.remove("no-anim");
+      });
+    }
   }
 
   function hideMeasurements() {
-    ["l", "r"].forEach(function (s) {
-      brackets[s][0].classList.remove("on");
-      brackets[s][1].classList.remove("on");
+    ["l", "r"].forEach(function (side) {
+      brackets[side][0].classList.remove("on");
+      brackets[side][1].classList.remove("on");
     });
   }
 
-  document.querySelectorAll("[data-m]").forEach(function (el) {
-    var show = function () { showMeasurements(el.dataset.m); };
-    el.addEventListener("pointerenter", show);
-    el.addEventListener("pointerleave", hideMeasurements);
-    el.addEventListener("focus", show);
-    el.addEventListener("blur", hideMeasurements);
-  });
+  function showMeasurements(el, persistent) {
+    if (mqCompact.matches) return;
+    if (GAPS === null) deriveGaps();
 
-  /* ---------- grid + measurements only while the pointer moves ----------
-     One live timer instead of clear+set per event: pointermove only stamps
-     the time, and the timer re-arms itself until the idle window passes. */
+    var item = GAPS[el.dataset.m];
+    if (!item) return;
+
+    var otherSide = item.side === "r" ? "l" : "r";
+    if (persistent) page.classList.add("is-focus-measuring");
+    else wake();
+
+    setBracket(brackets[item.side][0], item.gaps[0]);
+    setBracket(brackets[item.side][1], item.gaps[1]);
+    brackets[otherSide][0].classList.remove("on");
+    brackets[otherSide][1].classList.remove("on");
+  }
+
+  /* ---------- pointer activity ----------
+     Pointer events are delegated, capped to one wake-up per animation frame,
+     and ignored on coarse/non-hover pointers. */
 
   var IDLE_MS = 700;
   var idleTimer = null;
   var lastMove = 0;
+  var moveFrame = 0;
+  var measurementListenersReady = false;
 
   function idleCheck() {
-    var remain = IDLE_MS - (Date.now() - lastMove);
-    if (remain > 0) {
-      idleTimer = setTimeout(idleCheck, remain);
+    var remaining = IDLE_MS - (Date.now() - lastMove);
+
+    if (remaining > 0) {
+      idleTimer = setTimeout(idleCheck, remaining);
     } else {
       idleTimer = null;
       page.classList.remove("is-moving");
     }
   }
 
-  function wake() {
-    lastMove = Date.now();
+  function startMoving() {
     if (idleTimer === null) {
       page.classList.add("is-moving");
       idleTimer = setTimeout(idleCheck, IDLE_MS);
     }
   }
 
-  page.addEventListener("pointermove", wake);
+  function wake() {
+    lastMove = Date.now();
+    startMoving();
+  }
 
-  page.addEventListener("pointerleave", function () {
-    if (idleTimer !== null) {
-      clearTimeout(idleTimer);
-      idleTimer = null;
+  function notePointerMove() {
+    if (mqCompact.matches || !mqFinePointer.matches) return;
+    lastMove = Date.now();
+
+    if (moveFrame === 0) {
+      moveFrame = requestAnimationFrame(function () {
+        moveFrame = 0;
+        startMoving();
+      });
     }
-    page.classList.remove("is-moving");
-    hideMeasurements();
+  }
+
+  function closestMeasured(node) {
+    return node instanceof Element ? node.closest("[data-m]") : null;
+  }
+
+  function initMeasurementListeners() {
+    if (measurementListenersReady) return;
+    measurementListenersReady = true;
+
+    content.addEventListener("pointerover", function (event) {
+      if (mqCompact.matches || !mqFinePointer.matches) return;
+      var target = closestMeasured(event.target);
+      var previous = closestMeasured(event.relatedTarget);
+      if (target && target !== previous) showMeasurements(target, false);
+    });
+
+    content.addEventListener("pointerout", function (event) {
+      if (mqCompact.matches || !mqFinePointer.matches) return;
+      var target = closestMeasured(event.target);
+      var next = closestMeasured(event.relatedTarget);
+      if (!target || target === next) return;
+      if (next && content.contains(next)) showMeasurements(next, false);
+      else hideMeasurements();
+    });
+
+    content.addEventListener("focusin", function (event) {
+      var target = closestMeasured(event.target);
+      if (target) showMeasurements(target, true);
+    });
+
+    content.addEventListener("focusout", function (event) {
+      var next = closestMeasured(event.relatedTarget);
+      if (next && content.contains(next)) {
+        showMeasurements(next, true);
+      } else {
+        page.classList.remove("is-focus-measuring");
+        hideMeasurements();
+      }
+    });
+
+    page.addEventListener("pointermove", notePointerMove, { passive: true });
+
+    page.addEventListener("pointerleave", function () {
+      if (moveFrame !== 0) {
+        cancelAnimationFrame(moveFrame);
+        moveFrame = 0;
+      }
+      if (idleTimer !== null) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
+      }
+
+      page.classList.remove("is-moving");
+      if (!page.classList.contains("is-focus-measuring")) hideMeasurements();
+    });
+  }
+
+  function enableDesktopMeasurements() {
+    if (mqCompact.matches) return;
+    initMeasurementListeners();
+    scheduleGapDerivation();
+  }
+
+  enableDesktopMeasurements();
+
+  mqCompact.addEventListener("change", function (event) {
+    if (event.matches) {
+      page.classList.remove("is-moving", "is-focus-measuring");
+      hideMeasurements();
+    } else {
+      enableDesktopMeasurements();
+    }
   });
 })();
