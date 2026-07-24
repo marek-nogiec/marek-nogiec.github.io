@@ -48,6 +48,21 @@ async function stopChild(child) {
   ]);
 }
 
+function cleanupProfile() {
+  try {
+    rmSync(PROFILE, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 100,
+    });
+  } catch (error) {
+    if (!["EBUSY", "ENOTEMPTY", "EPERM"].includes(error.code)) throw error;
+    // Chrome can leave a short-lived helper writing into its disposable
+    // profile after the parent exits, especially on Linux CI runners.
+  }
+}
+
 async function waitFor(predicate, description, timeout = 15_000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
@@ -463,10 +478,5 @@ try {
 } finally {
   client?.close();
   await Promise.all([stopChild(chrome), stopChild(preview)]);
-  rmSync(PROFILE, {
-    recursive: true,
-    force: true,
-    maxRetries: 5,
-    retryDelay: 100,
-  });
+  cleanupProfile();
 }
