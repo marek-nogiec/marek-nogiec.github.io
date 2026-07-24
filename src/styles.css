@@ -1,0 +1,462 @@
+/* ============================================================
+   Marek Nogiec — landing page
+   8-pt grid in "design px": 32 rows of 32, content 800 high,
+   40 margins, 6 columns, page 1440 wide filling a 1440 viewport.
+   1rem = 10 design px; the root font-size scales with the
+   viewport (100vw / 144), so every size and spacing keeps the
+   exact proportions of the 1440 reference at any width. Only
+   hairlines stay a physical 1px. Grid + measurements appear
+   while the mouse moves. ≤840px is a single-column layout
+   rebased to a 390 reference.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+html {
+  font-size: calc(100vw / 144); /* 10px at 1440 viewport */
+  /* the page is exactly 100vw wide; on classic (non-overlay) scrollbars
+     100vw includes the scrollbar, so clip the sliver it would overflow */
+  overflow-x: hidden;
+}
+
+/* Theme: one palette via light-dark(); the toggle overrides the
+   preferred scheme by pinning color-scheme through data-theme. */
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#fbfbf9, #111110);
+  --fg: light-dark(#1a1917, #ededea);
+  --muted: light-dark(#6c6a62, #928f86);
+  --faint: light-dark(#a3a199, #66645d);
+  --border: light-dark(rgba(0, 0, 0, 0.09), rgba(255, 255, 255, 0.1));
+  --border2: light-dark(rgba(0, 0, 0, 0.15), rgba(255, 255, 255, 0.17));
+  --accent: light-dark(oklch(0.56 0.14 155), oklch(0.82 0.14 155));
+  /* grid ink: hue 15, opacity 0.2 */
+  --gl-strong: light-dark(oklch(0.58 0.19 15 / 0.2),   oklch(0.74 0.19 15 / 0.2));
+  --gl-mid:    light-dark(oklch(0.58 0.19 15 / 0.124), oklch(0.74 0.19 15 / 0.124));
+  --gl-soft:   light-dark(oklch(0.58 0.19 15 / 0.06),  oklch(0.74 0.19 15 / 0.06));
+  --gl-label:  light-dark(oklch(0.50 0.19 15 / 0.27),  oklch(0.80 0.19 15 / 0.27));
+  --gl-tint:   light-dark(oklch(0.58 0.19 15 / 0.024), oklch(0.74 0.19 15 / 0.024));
+}
+
+/* manual override (theme toggle) */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
+
+/* toggle label text lives in CSS so it is correct before (and without) JS */
+#theme-label::after { content: "Light"; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #theme-label::after { content: "Dark"; }
+}
+:root[data-theme="dark"] #theme-label::after { content: "Dark"; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: inherit; }
+
+.page {
+  position: relative;
+  width: 144rem; /* = 100vw: the 1440 page fills the reference viewport edge-to-edge */
+  min-height: 100vh;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+/* ---- decorative circles, centered on grid intersections ---- */
+
+.decor {
+  position: absolute;
+  left: 4rem;
+  right: 4rem;
+  top: 4rem;
+  height: 80rem;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.decor i {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  background: var(--gl-tint);
+}
+
+.decor .c1 { left: calc(100% / 6 - 12.8rem); top: 6.4rem;  width: 25.6rem; height: 25.6rem; } /* r = 4 rows */
+.decor .c2 { right: calc(100% / 6 - 9.6rem); top: 51.2rem; width: 19.2rem; height: 19.2rem; } /* r = 3 rows */
+
+/* ---- grid overlay (visible while the mouse moves) ---- */
+
+.grid-overlay {
+  position: absolute;
+  left: 4rem;
+  right: 4rem;
+  top: 4rem;
+  height: 80rem;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    repeating-linear-gradient(to right,  var(--gl-mid)  0 1px, transparent 1px calc(100% / 6)),
+    repeating-linear-gradient(to bottom, var(--gl-soft) 0 1px, transparent 1px 3.2rem);
+  border-right: 1px solid var(--gl-mid);
+  border-bottom: 1px solid var(--gl-soft);
+  opacity: 0;
+  transition: opacity 0.28s ease; /* grid fades slightly faster than measurements */
+}
+
+.page.is-moving .grid-overlay { opacity: 1; }
+
+/* ---- measurement rulers ----
+   Brackets span the full ruler; the gap they mark is positioned via
+   --gap-top / --gap-h (design px) driving transforms on the parts, so the
+   move/grow animation runs on the compositor instead of relayouting each
+   frame. The * 0.1rem in the transforms converts design px to real px. */
+
+.ruler {
+  position: absolute;
+  top: 4rem;
+  height: 80rem;
+  width: 4rem;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.ruler--left  { left: 0; }
+.ruler--right { right: 0; }
+
+.bracket {
+  --gap-top: 0;
+  --gap-h: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4rem;
+  height: 80rem;
+  opacity: 0;
+  /* hide: slower fade with a small delay (after the grid) */
+  transition: opacity 0.79s ease 0.35s;
+}
+
+.page.is-moving .bracket.on {
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+
+.bracket .b-line {
+  position: absolute;
+  left: 2rem;
+  top: 0;
+  width: 1px;
+  height: 0.1rem; /* 1 design px; scaleY stretches it to --gap-h design px */
+  transform-origin: 0 0;
+  transform: translateY(calc(var(--gap-top) * 0.1rem)) scaleY(var(--gap-h));
+  background: var(--gl-strong);
+}
+
+.bracket .b-tick {
+  position: absolute;
+  left: 1.5rem;
+  top: 0;
+  width: 1.1rem;
+  height: 1px;
+  background: var(--gl-strong);
+}
+
+.bracket .b-tick.top { transform: translateY(calc(var(--gap-top) * 0.1rem)); }
+.bracket .b-tick.bot { transform: translateY(calc((var(--gap-top) + var(--gap-h)) * 0.1rem - 1px)); }
+
+.bracket .b-label {
+  position: absolute;
+  top: 0;
+  display: flex;
+  transform:
+    translateY(calc((var(--gap-top) + var(--gap-h) / 2) * 0.1rem))
+    translate(-50%, -50%) rotate(-90deg);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--gl-label);
+}
+
+.bracket .b-line,
+.bracket .b-tick,
+.bracket .b-label {
+  transition: transform 0.79s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* first placement of a bracket snaps into position instead of
+   animating in from the 0/0 default */
+.bracket.no-anim .b-line,
+.bracket.no-anim .b-tick,
+.bracket.no-anim .b-label {
+  transition: none;
+}
+
+.ruler--left  .b-label { left: 2.9rem; } /* label outside the line, mirrored per side */
+.ruler--right .b-label { left: 1.1rem; }
+
+/* split-flap digit dials */
+
+.dial {
+  width: 0.6rem;
+  height: 1.2rem;
+  overflow: hidden;
+  text-align: center;
+}
+
+.dial .strip {
+  display: block; /* inline elements ignore transforms — dials froze at 0 */
+  transition: transform 0.875s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dial .strip span {
+  display: block;
+  height: 1.2rem;
+  line-height: 1.2rem;
+}
+
+/* ---- content ---- */
+
+.content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: 3.2rem;
+  padding: 4rem;
+}
+
+.mono {
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.02em;
+}
+
+.handle {
+  grid-column: 1 / 3;
+  grid-row: 1;
+  line-height: 3.2rem;
+  font-size: 1.25rem;
+}
+
+.gh-link {
+  grid-column: 5;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  line-height: 3.2rem;
+  font-size: 1.25rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.gh-link svg { width: 1.4rem; height: 1.4rem; }
+
+.gh-link:hover { color: var(--accent); }
+
+.theme-toggle {
+  grid-column: 6;
+  grid-row: 1;
+  align-self: center;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.05rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.theme-toggle:hover {
+  border-color: var(--border2);
+  color: var(--fg);
+}
+
+.theme-toggle i {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--accent);
+  display: block;
+}
+
+.headline {
+  grid-column: 1 / 5;
+  grid-row: 3 / 7;
+  align-self: start;
+  margin: 0;
+  font-size: 6rem;
+  font-weight: 700;
+  line-height: 6.4rem;
+  letter-spacing: -0.045em;
+}
+
+.subtitle {
+  grid-column: 5 / 7;
+  grid-row: 4;
+  line-height: 3.2rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+.bio {
+  grid-column: 5 / 7;
+  grid-row: 7 / 10;
+  align-self: start;
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 3.2rem;
+  color: var(--muted);
+}
+
+.section-label {
+  grid-column: 1 / 3;
+  grid-row: 13;
+  line-height: 3.2rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.1rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.project-title {
+  grid-column: 1 / 3;
+  grid-row: 15;
+  line-height: 3.2rem;
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.project-title:hover { color: var(--accent); }
+
+.project-desc {
+  grid-column: 1 / 4;
+  grid-row: 17 / 20;
+  align-self: start;
+  display: block;
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 3.2rem;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.project-desc:hover { color: var(--fg); }
+
+.tags {
+  grid-column: 1 / 4;
+  grid-row: 22;
+  line-height: 3.2rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.1rem;
+  color: var(--faint);
+  letter-spacing: 0.02em;
+}
+
+.footer {
+  grid-column: 1 / 3;
+  grid-row: 24;
+  line-height: 3.2rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.1rem;
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+
+.page-count {
+  grid-column: 5;
+  grid-row: 24;
+  line-height: 3.2rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.live-link {
+  grid-column: 6;
+  grid-row: 24;
+  line-height: 3.2rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.3rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.live-link:hover { color: var(--accent); }
+
+/* ---- mobile: single column, rebased to a 390 reference ----
+   Rulers and grid overlay are hover-driven and need the side
+   gutters, so they go; the tinted circles stay. The g* spacer
+   divs only exist to feed the measurement JS — hidden here
+   (their inline style sets grid-column, not display). */
+
+@media (max-width: 840px) {
+  html { font-size: clamp(8px, calc(100vw / 39), 11px); } /* 10px at 390 viewport */
+
+  .page { width: auto; }
+
+  .ruler,
+  .grid-overlay,
+  [data-m^="g"] { display: none; }
+
+  .decor { left: 0; right: 0; height: 100%; }
+  .decor .c1 { left: -6.4rem; top: 9.6rem; }
+  .decor .c2 { right: -6.4rem; top: 48rem; }
+
+  /* block flow: grid placement props become inert, DOM order rules */
+  .content { display: block; padding: 3.2rem 2.4rem 4rem; }
+
+  .handle { display: block; }
+
+  .theme-toggle { position: absolute; top: 2.7rem; right: 2.4rem; }
+
+  .headline {
+    margin-top: 4.8rem;
+    font-size: 4.4rem;
+    line-height: 4.8rem;
+  }
+
+  .subtitle { margin-top: 1.6rem; }
+
+  .bio {
+    margin-top: 1.6rem;
+    line-height: 2.4rem;
+  }
+
+  .section-label { margin-top: 6.4rem; }
+
+  .project-title {
+    display: block;
+    margin-top: 1.6rem;
+  }
+
+  .project-desc {
+    margin-top: 0.8rem;
+    line-height: 2.4rem;
+  }
+
+  .tags { margin-top: 1.6rem; }
+
+  .footer { margin-top: 6.4rem; }
+
+  .page-count { display: inline-block; }
+  .live-link { float: right; }
+}
