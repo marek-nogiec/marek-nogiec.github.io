@@ -15,6 +15,9 @@ CONTENT = ROOT / "src" / "content" / "en.json"
 SOURCE = ROOT / "fonts" / "SpaceGrotesk[wght].woff2"
 OUTPUT = ROOT / "src" / "assets" / "space-grotesk-subset.woff2"
 MANIFEST = ROOT / "fonts" / "space-grotesk-subset.json"
+FONT_LICENSE = ROOT / "fonts" / "OFL.txt"
+RETAINED_NAME_IDS = (0, 1, 2, 3, 4, 5, 6, 13, 14)
+REQUIRED_LICENSE_NAME_IDS = frozenset((0, 13, 14))
 
 # Only these semantic fields render in Space Grotesk. Everything else uses
 # system monospace or exists only in document metadata. This replaces the old
@@ -69,12 +72,16 @@ def current_manifest() -> dict[str, Any]:
             "version": "2.0.0",
             "url": "https://github.com/floriankarsten/space-grotesk/releases/tag/2.0.0",
             "sha256": sha256(SOURCE),
+            "license": "OFL-1.1",
+            "licenseFile": "fonts/OFL.txt",
+            "licenseSha256": sha256(FONT_LICENSE),
         },
         "subset": {
             "weights": "400 700",
             "format": "woff2",
             "bytes": OUTPUT.stat().st_size,
             "sha256": sha256(OUTPUT),
+            "retainedNameIds": list(RETAINED_NAME_IDS),
         },
         "fallbackCharacters": fallbacks,
         "characters": characters,
@@ -116,7 +123,7 @@ def build() -> None:
 
     options = subset.Options()
     options.flavor = "woff2"
-    options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 13, 14]
+    options.name_IDs = list(RETAINED_NAME_IDS)
 
     subsetter = subset.Subsetter(options=options)
     subsetter.populate(text=characters)
@@ -124,6 +131,24 @@ def build() -> None:
 
     font.flavor = "woff2"
     font.save(OUTPUT, reorderTables=True)
+
+    emitted = TTFont(OUTPUT)
+    emitted_name_ids = {record.nameID for record in emitted["name"].names}
+    missing_name_ids = REQUIRED_LICENSE_NAME_IDS - emitted_name_ids
+    if missing_name_ids:
+        raise RuntimeError(
+            "subset is missing required copyright/license name IDs: "
+            f"{sorted(missing_name_ids)}"
+        )
+    license_descriptions = {
+        record.toUnicode()
+        for record in emitted["name"].names
+        if record.nameID == 13
+    }
+    if not any("Open Font License" in text for text in license_descriptions):
+        raise RuntimeError("subset does not retain its Open Font License metadata")
+    emitted.close()
+
     MANIFEST.write_text(
         json.dumps(current_manifest(), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

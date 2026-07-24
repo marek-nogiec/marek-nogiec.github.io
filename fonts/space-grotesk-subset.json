@@ -3,13 +3,27 @@
   "source": {
     "version": "2.0.0",
     "url": "https://github.com/floriankarsten/space-grotesk/releases/tag/2.0.0",
-    "sha256": "8e085aa438094f11487a836652edd5c054fa6a96f63fc7c282105ee3a4b08c07"
+    "sha256": "8e085aa438094f11487a836652edd5c054fa6a96f63fc7c282105ee3a4b08c07",
+    "license": "OFL-1.1",
+    "licenseFile": "fonts/OFL.txt",
+    "licenseSha256": "8ab3160f266b91c3fb659379668d16a43f293821537ac6a5dafee6688798a97a"
   },
   "subset": {
     "weights": "400 700",
     "format": "woff2",
     "bytes": 5476,
-    "sha256": "76f056f766156b1dfcc0b3731f62cbb30f4059dc278062207e340aa09eaf0df1"
+    "sha256": "76f056f766156b1dfcc0b3731f62cbb30f4059dc278062207e340aa09eaf0df1",
+    "retainedNameIds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      13,
+      14
+    ]
   },
   "fallbackCharacters": "‑",
   "characters": " &.ACDFGHMNOSTUVWacdefghiklmnoprstuvwy→",
