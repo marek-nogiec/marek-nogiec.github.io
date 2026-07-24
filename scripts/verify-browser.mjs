@@ -206,6 +206,49 @@ async function navigate(client, width, height = 900) {
   })()`);
 }
 
+async function measureTarget(client, key, index = 0) {
+  return client.evaluate(`(async () => {
+    const target = [...document.querySelectorAll('[data-m="${key}"]')][${index}];
+    if (!target) throw new Error("missing measurement target: ${key}[${index}]");
+
+    target.dispatchEvent(new PointerEvent("pointerover", {
+      bubbles: true,
+      pointerType: "mouse",
+      relatedTarget: null
+    }));
+    document.querySelector("#page").dispatchEvent(new PointerEvent("pointermove", {
+      bubbles: true,
+      pointerType: "mouse"
+    }));
+    await new Promise(requestAnimationFrame);
+
+    const dialValue = (bracket) => [...bracket.querySelectorAll(".dial .strip")]
+      .map((strip) => {
+        const match = strip.style.transform.match(/translateY\\((-?\\d+(?:\\.\\d+)?)%\\)/);
+        return match ? Math.round(Math.abs(Number(match[1])) / 10) : "?";
+      })
+      .join("");
+
+    return {
+      finePointer: matchMedia("(hover: hover) and (pointer: fine)").matches,
+      active: [...document.querySelectorAll(".bracket.on")].map((bracket) => {
+        const rulerRect = bracket.parentElement.getBoundingClientRect();
+        const lineRect = bracket.querySelector(".b-line").getBoundingClientRect();
+        const labelRect = bracket.querySelector(".b-label").getBoundingClientRect();
+        return {
+          side: bracket.id.includes("-r") ? "r" : "l",
+          top: Number(bracket.style.getPropertyValue("--gap-top")),
+          height: Number(bracket.style.getPropertyValue("--gap-h")),
+          label: dialValue(bracket),
+          lineTop: Math.round(lineRect.top - rulerRect.top),
+          lineHeight: Math.round(lineRect.height),
+          labelCenter: Math.round(labelRect.top + labelRect.height / 2 - rulerRect.top)
+        };
+      })
+    };
+  })()`);
+}
+
 const preview = startPreview();
 let chrome;
 let client;
@@ -334,7 +377,43 @@ try {
   })`);
   motion.forEach((duration) => assert.equal(duration, "0s"));
 
-  await client.send("Emulation.setEmulatedMedia", { features: [] });
+  const measurementScenarios = [
+    ["headline", "l", [[32, 32], [192, 128]]],
+    ["gHeadProj", "l", [[192, 128]]],
+    ["projects", "l", [[192, 128], [352, 32]]],
+    ["gNavSub", "r", [[32, 64]]],
+    ["sub", "r", [[32, 64], [128, 64]]],
+    ["gSubBio", "r", [[128, 64]]],
+    ["bio", "r", [[128, 64], [288, 320]]],
+    ["gBioPage", "r", [[288, 320]]],
+    ["pageinfo", "r", [[288, 320], [640, 32]]],
+  ];
+
+  for (const [key, side, gaps] of measurementScenarios) {
+    const observed = await measureTarget(client, key);
+    assert.equal(observed.finePointer, true, "desktop browser must expose a fine hover pointer");
+    assert.deepEqual(
+      observed.active,
+      gaps.map(([top, height]) => ({
+        side,
+        top,
+        height,
+        label: String(height),
+        lineTop: top,
+        lineHeight: height,
+        labelCenter: top + height / 2,
+      })),
+      `${key} must render the correct ${side === "r" ? "right" : "left"}-side rulers`,
+    );
+    if (process.env.CAPTURE_MEASUREMENTS === "1") {
+      const screenshot = await client.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
+      writeFileSync(`/tmp/homepage-measurement-${key}.png`, screenshot.data, "base64");
+    }
+  }
+
   const measurementState = await client.evaluate(`(async () => {
     const tags = document.querySelector(".tags");
     tags.tabIndex = -1;
@@ -361,6 +440,7 @@ try {
     `tag rulers must use adjacent rows; observed ${JSON.stringify(measurementState)}`,
   );
 
+  await client.send("Emulation.setEmulatedMedia", { features: [] });
   const accessibilityTree = await client.send("Accessibility.getFullAXTree");
   const accessibleText = accessibilityTree.nodes
     .map((node) => node.name?.value ?? "")

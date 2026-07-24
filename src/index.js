@@ -66,7 +66,10 @@ import "./styles.css";
     var contentRect = content.getBoundingClientRect();
     var toDesign = 10 / rootSize;
     var origin = contentRect.top + parseFloat(contentStyle.paddingTop);
-    var rightColumnStart = contentRect.left + contentRect.width * 2 / 3;
+    var paddingLeft = parseFloat(contentStyle.paddingLeft);
+    var paddingRight = parseFloat(contentStyle.paddingRight);
+    var gridWidth = contentRect.width - paddingLeft - paddingRight;
+    var rightColumnStart = contentRect.left + paddingLeft + gridWidth * 2 / 3;
 
     document.querySelectorAll("[data-m]").forEach(function (el) {
       var rect = el.getBoundingClientRect();
