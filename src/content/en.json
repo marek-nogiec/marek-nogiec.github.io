@@ -25,7 +25,7 @@
     "heading": "Projects",
     "dropcast": {
       "title": "Dropcast",
-      "description": "A native macOS app that streams a local movie to any Chromecast or Google Cast TV over your own Wi‑Fi.",
+      "description": "An open-source native macOS app that streams a local movie to any Chromecast or Google Cast TV over your own Wi‑Fi.",
       "tags": "Rust · macOS · Google Cast · FFmpeg",
       "live": "Live",
       "url": "https://nogiec.org/dropcast/"
