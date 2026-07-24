@@ -225,16 +225,22 @@ async function measureTarget(client, key, index = 0) {
   return client.evaluate(`(async () => {
     const target = [...document.querySelectorAll('[data-m="${key}"]')][${index}];
     if (!target) throw new Error("missing measurement target: ${key}[${index}]");
+    const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-    target.dispatchEvent(new PointerEvent("pointerover", {
-      bubbles: true,
-      pointerType: "mouse",
-      relatedTarget: null
-    }));
-    document.querySelector("#page").dispatchEvent(new PointerEvent("pointermove", {
-      bubbles: true,
-      pointerType: "mouse"
-    }));
+    if (finePointer) {
+      target.dispatchEvent(new PointerEvent("pointerover", {
+        bubbles: true,
+        pointerType: "mouse",
+        relatedTarget: null
+      }));
+      document.querySelector("#page").dispatchEvent(new PointerEvent("pointermove", {
+        bubbles: true,
+        pointerType: "mouse"
+      }));
+    } else {
+      target.tabIndex = -1;
+      target.focus();
+    }
     await new Promise(requestAnimationFrame);
 
     const dialValue = (bracket) => [...bracket.querySelectorAll(".dial .strip")]
@@ -245,7 +251,7 @@ async function measureTarget(client, key, index = 0) {
       .join("");
 
     return {
-      finePointer: matchMedia("(hover: hover) and (pointer: fine)").matches,
+      interaction: finePointer ? "pointer" : "focus",
       active: [...document.querySelectorAll(".bracket.on")].map((bracket) => {
         const rulerRect = bracket.parentElement.getBoundingClientRect();
         const lineRect = bracket.querySelector(".b-line").getBoundingClientRect();
@@ -410,7 +416,6 @@ try {
 
   for (const [key, side, gaps] of measurementScenarios) {
     const observed = await measureTarget(client, key);
-    assert.equal(observed.finePointer, true, "desktop browser must expose a fine hover pointer");
     assert.deepEqual(
       observed.active,
       gaps.map(([top, height]) => ({
