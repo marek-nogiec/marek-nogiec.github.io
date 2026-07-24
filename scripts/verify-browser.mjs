@@ -364,7 +364,11 @@ try {
   });
 
   await client.send("Emulation.setEmulatedMedia", {
-    features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+    features: [
+      { name: "prefers-reduced-motion", value: "reduce" },
+      { name: "hover", value: "hover" },
+      { name: "pointer", value: "fine" },
+    ],
   });
   const motion = await client.evaluate(`[
     ".grid-overlay",
