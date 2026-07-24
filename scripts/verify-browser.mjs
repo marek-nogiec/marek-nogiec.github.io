@@ -12,11 +12,16 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const HOST = "127.0.0.1";
 const PORT = 4173;
 const PAGE_URL = `http://${HOST}:${PORT}/`;
 const PROFILE = mkdtempSync(join(tmpdir(), "homepage-chrome-"));
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const RSBUILD_BIN = fileURLToPath(
+  new URL("../node_modules/@rsbuild/core/bin/rsbuild.js", import.meta.url),
+);
 
 const chromeCandidates = [
   process.env.CHROME_PATH,
@@ -53,18 +58,17 @@ async function waitFor(predicate, description, timeout = 15_000) {
 }
 
 function startPreview() {
-  const child = spawn(
-    process.platform === "win32" ? "npm.cmd" : "npm",
-    ["run", "preview", "--", "--host", HOST, "--port", String(PORT)],
-    {
-      cwd: new URL("..", import.meta.url),
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-  let output = "";
-  child.stdout.on("data", (chunk) => { output += chunk; });
-  child.stderr.on("data", (chunk) => { output += chunk; });
-  return { child, output: () => output };
+  return spawn(process.execPath, [
+    RSBUILD_BIN,
+    "preview",
+    "--host",
+    HOST,
+    "--port",
+    String(PORT),
+  ], {
+    cwd: ROOT,
+    stdio: "ignore",
+  });
 }
 
 function startChrome() {
@@ -79,7 +83,7 @@ function startChrome() {
     `--user-data-dir=${PROFILE}`,
     "about:blank",
   ], {
-    stdio: ["ignore", "ignore", "pipe"],
+    stdio: "ignore",
   });
 }
 
@@ -374,7 +378,7 @@ try {
   })));
 } finally {
   client?.close();
-  await Promise.all([stopChild(chrome), stopChild(preview.child)]);
+  await Promise.all([stopChild(chrome), stopChild(preview)]);
   rmSync(PROFILE, {
     recursive: true,
     force: true,
