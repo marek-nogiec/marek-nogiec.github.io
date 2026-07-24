@@ -129,5 +129,5 @@ under the SIL Open Font License 1.1 in `fonts/OFL.txt`.
 | `scripts/build-font-subset.py` | Catalog reader, drift gate, and deterministic subset generator |
 | `scripts/verify-dist.mjs` | Two-file/resource/budget verifier |
 | `scripts/verify-browser.mjs` | Dependency-free Chrome/CDP browser checks |
-| `scripts/ci-report.mjs` | Shared Actions summary and pull-request report generator |
+| `scripts/ci-report.mjs` | Shared Actions and pull-request report generator |
 | `lighthouserc.json` | Repeat-run Lighthouse budgets |

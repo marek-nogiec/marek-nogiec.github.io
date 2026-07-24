@@ -5,18 +5,19 @@ import assert from "node:assert/strict";
 import {
   existsSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const HOST = "127.0.0.1";
 const PORT = 4173;
+const CDP_PORT = 9223;
 const PAGE_URL = `http://${HOST}:${PORT}/`;
+const CDP_TARGETS_URL = `http://${HOST}:${CDP_PORT}/json/list`;
 const PROFILE = mkdtempSync(join(tmpdir(), "homepage-chrome-"));
 const FORCE_FOCUS_MEASUREMENTS = process.env.FORCE_FOCUS_MEASUREMENTS === "1";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -25,16 +26,25 @@ const RSBUILD_BIN = fileURLToPath(
 );
 
 const chromeCandidates = [
-  process.env.CHROME_PATH,
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   "/usr/bin/google-chrome",
   "/usr/bin/google-chrome-stable",
   "/usr/bin/chromium",
   "/usr/bin/chromium-browser",
-].filter(Boolean);
+  "chrome",
+  "google-chrome",
+  "google-chrome-stable",
+  "chromium",
+  "chromium-browser",
+];
 
-const chromePath = chromeCandidates.find(existsSync);
-assert.ok(chromePath, "Chrome was not found; set CHROME_PATH to run browser verification");
+function chromeIsAvailable(candidate) {
+  if (candidate.startsWith("/")) return existsSync(candidate);
+  return spawnSync(candidate, ["--version"], { stdio: "ignore" }).status === 0;
+}
+
+const chromeExecutable = chromeCandidates.find(chromeIsAvailable);
+assert.ok(chromeExecutable, "Chrome was not found in a supported location or on PATH");
 
 function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -95,14 +105,14 @@ function startPreview() {
 }
 
 function startChrome() {
-  return spawn(chromePath, [
+  return spawn(chromeExecutable, [
     "--headless=new",
     "--no-sandbox",
     "--disable-dev-shm-usage",
     "--disable-background-networking",
     "--disable-component-update",
     "--no-first-run",
-    "--remote-debugging-port=0",
+    `--remote-debugging-port=${CDP_PORT}`,
     `--user-data-dir=${PROFILE}`,
     "about:blank",
   ], {
@@ -294,11 +304,14 @@ try {
   }, "production preview");
 
   chrome = startChrome();
-  const activePortPath = join(PROFILE, "DevToolsActivePort");
-  await waitFor(() => existsSync(activePortPath), "Chrome DevTools port");
-  const port = readFileSync(activePortPath, "utf8").split(/\r?\n/)[0];
-
-  const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+  await waitFor(async () => {
+    try {
+      return (await fetch(CDP_TARGETS_URL)).ok;
+    } catch {
+      return false;
+    }
+  }, "Chrome DevTools endpoint");
+  const targets = await (await fetch(CDP_TARGETS_URL)).json();
   const pageTarget = targets.find((target) => target.type === "page");
   assert.ok(pageTarget?.webSocketDebuggerUrl, "Chrome page target was not available");
 

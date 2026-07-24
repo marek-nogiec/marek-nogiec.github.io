@@ -53,11 +53,15 @@ jobs:
       - id: report
         name: Publish run summary
         if: always()
-        run: >-
-          node scripts/ci-report.mjs
-          --output ci-report.md
-          --github-summary
-          --github-output
+        run: |
+          node scripts/ci-report.mjs --output ci-report.md
+          cat ci-report.md >> "$GITHUB_STEP_SUMMARY"
+          delimiter="CI_REPORT_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          {
+            printf 'report<<%s\n' "$delimiter"
+            cat ci-report.md
+            printf '\n%s\n' "$delimiter"
+          } >> "$GITHUB_OUTPUT"
         env:
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
