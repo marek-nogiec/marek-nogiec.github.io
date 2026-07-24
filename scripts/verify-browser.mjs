@@ -333,8 +333,11 @@ try {
     result.resources
       .filter((resource) => resource.startsWith("http") && !resource.startsWith(PAGE_URL))
       .forEach((resource) => {
-        assert.equal(new URL(resource).hostname, "fonts.gstatic.com");
+        assert.fail(`unexpected cross-origin runtime request: ${resource}`);
       });
+    const fontResources = result.resources.filter((resource) => resource.endsWith(".woff2"));
+    assert.equal(fontResources.length, 1, `expected one local font request at ${result.width}px`);
+    assert.equal(new URL(fontResources[0]).origin, new URL(PAGE_URL).origin);
   });
 
   const compactEdge = results.find((result) => result.width === 959);

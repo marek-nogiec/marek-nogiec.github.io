@@ -50,14 +50,14 @@ test("accepts the current production artifact", () => {
 test("rejects an extra output file", () => {
   const directory = fixture();
   writeFileSync(join(directory, "unexpected.js"), "console.log('unexpected')");
-  assert.match(verifyDist(directory).failures.join("\n"), /file tree/);
+  assert.match(verifyDist(directory).failures.join("\n"), /exactly two dist files/);
 });
 
-test("rejects lookalike allowed hostnames", () => {
+test("rejects cross-origin preconnects, including familiar lookalike hosts", () => {
   const directory = fixture();
   mutateHtml(directory, (html) => html.replace(
-    "https://fonts.gstatic.com/",
-    "https://fonts.gstatic.com.evil.test/",
+    "</head>",
+    '<link rel="preconnect" href="https://fonts.gstatic.com.evil.test/"></head>',
   ));
   assert.match(verifyDist(directory).failures.join("\n"), /disallowed external resource/);
 });
@@ -71,10 +71,16 @@ test("rejects external scripts", () => {
   assert.match(verifyDist(directory).failures.join("\n"), /disallowed external resource/);
 });
 
-test("rejects local runtime assets", () => {
+test("rejects unapproved local runtime assets", () => {
   const directory = fixture();
   mutateHtml(directory, (html) => html.replace("</body>", '<img src="portrait.png"></body>'));
-  assert.match(verifyDist(directory).failures.join("\n"), /local asset reference/);
+  assert.match(verifyDist(directory).failures.join("\n"), /unapproved local asset reference/);
+});
+
+test("requires a crossorigin font preload", () => {
+  const directory = fixture();
+  mutateHtml(directory, (html) => html.replace(' crossorigin=""', ""));
+  assert.match(verifyDist(directory).failures.join("\n"), /valid crossorigin preload/);
 });
 
 test("enforces transfer budgets", () => {

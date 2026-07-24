@@ -11,10 +11,10 @@ is one static landing page with no application framework.
   frozen historical reference the initial sources were split from. The current
   compact 21-row design intentionally supersedes parts of that file. Current
   layout behavior is codified by `src/` plus `scripts/verify-browser.mjs`.
-- **Production remains one self-contained HTML file.** Rsbuild inlines local CSS
-  and JS into `dist/index.html`. The only runtime asset requests allowed are the
-  two pinned WOFF2 files on `fonts.gstatic.com`; verification rejects any other
-  output file, local asset, or external host.
+- **Production is exactly two files.** Rsbuild inlines local CSS and JS into
+  `dist/index.html` and emits one content-hashed Space Grotesk WOFF2 beside it.
+  Verification rejects every other output file, local asset, or cross-origin
+  runtime request.
 - The DOM-dependent entry script must remain injected at the end of `<body>`
   (`html.inject: "body"` and `html.scriptLoading: "blocking"`).
 - Desktop layout uses 21 rows of 32 design px, 672 design-px content height,
@@ -41,8 +41,10 @@ npm run verify
 npm run verify:browser
 ```
 
-`npm run verify` builds the site, asserts the exact one-file artifact contract,
-checks raw/gzip/Brotli budgets, and runs negative verifier fixtures.
+`npm run verify` first checks that static page content still matches the
+committed font manifest, then builds the site, asserts the exact two-file
+artifact contract, checks HTML/font/combined transfer budgets, and runs
+negative verifier fixtures.
 
 `npm run verify:browser` starts the production preview and uses installed Chrome
 through the DevTools protocol. It checks 390, 959, 960, 1024, 1199, 1200, and 1440px
@@ -69,6 +71,17 @@ LCP <1.8s, CLS <0.01, and TBT <50ms.
 
 - No service worker, framework runtime, client router, code splitting,
   `content-visibility`, persistent `will-change`, or speculative prefetching.
-- Do not inline full font binaries into the HTML. The pinned external WOFF2
-  files preserve independent long-lived caching without restoring the blocking
-  Google Fonts stylesheet.
+- Do not inline font binaries into the HTML. The content-derived external WOFF2
+  preserves independent caching without a third-party request or blocking font
+  stylesheet.
+
+## Font subset maintenance
+
+- `fonts/SpaceGrotesk[wght].woff2` is the pinned official 2.0.0 build input;
+  `fonts/OFL.txt` must remain with it.
+- `src/assets/space-grotesk-subset.woff2` and
+  `fonts/space-grotesk-subset.json` are generated together.
+- After changing visible page copy, install `requirements-fonts.txt` and run
+  `npm run fonts:build`; do not hand-edit the manifest.
+- Monospace UI and all dynamic measurement digits use the system
+  `ui-monospace` stack and are intentionally excluded from the custom subset.
