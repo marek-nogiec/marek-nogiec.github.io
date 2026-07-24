@@ -4,7 +4,7 @@
     "title": "Marek Nogiec",
     "description": "Marek Nogiec creates useful and delightfully useless apps, experiments, and tools.",
     "socialDescription": "Useful and delightfully useless apps, experiments, and tools.",
-    "siteUrl": "https://marek-nogiec.github.io/"
+    "siteUrl": "https://nogiec.org/"
   },
   "navigation": {
     "github": "marek-nogiec",
@@ -28,7 +28,7 @@
       "description": "A native macOS app that streams a local movie to any Chromecast or Google Cast TV over your own Wi‑Fi.",
       "tags": "Rust · macOS · Google Cast · FFmpeg",
       "live": "Live",
-      "url": "https://marek-nogiec.github.io/dropcast/"
+      "url": "https://nogiec.org/dropcast/"
     }
   },
   "footer": {
