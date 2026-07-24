@@ -44,6 +44,11 @@ After any source or build change, run:
 npm run verify:all
 ```
 
+Commit messages and pull request titles must follow Conventional Commits.
+Install the `commit-msg` hook with `npm run prepare`; it uses Commitlint to
+reject invalid messages before Git creates a commit. CI checks every commit and
+the title in owner pull requests, and the latest commit on pushes to `main`.
+
 `npm run verify:all` first checks that static page content still matches the
 committed font manifest, then builds the site once, asserts the exact two-file
 artifact contract, checks HTML/font/combined transfer budgets, runs negative
