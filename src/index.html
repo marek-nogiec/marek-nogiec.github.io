@@ -1,56 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%- copy.locale %>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Marek Nogiec</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<meta name="description" content="<%- copy.meta.description %>">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#fbfbf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
+<title><%- copy.meta.title %></title>
+<link rel="canonical" href="<%- copy.meta.siteUrl %>">
+<meta property="og:type" content="website">
+<meta property="og:url" content="<%- copy.meta.siteUrl %>">
+<meta property="og:title" content="<%- copy.meta.title %>">
+<meta property="og:description" content="<%- copy.meta.socialDescription %>">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="<%- copy.meta.title %>">
+<meta name="twitter:description" content="<%- copy.meta.socialDescription %>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a1917'/%3E%3Cpath d='M15 46V18h8l9 13 9-13h8v28h-8V30l-9 12-9-12v16z' fill='%23fbfbf9'/%3E%3C/svg%3E">
+<script>
+try {
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "light" || savedTheme === "dark") document.documentElement.dataset.theme = savedTheme;
+} catch {}
+</script>
+<noscript><style>.theme-toggle{display:none!important}</style></noscript>
 </head>
 <body>
 <div class="page" id="page">
-  <div class="decor"><i class="c1"></i><i class="c2"></i></div>
-  <div class="grid-overlay"></div>
+  <div class="decor" aria-hidden="true"><i class="c1"></i><i class="c2"></i></div>
+  <div class="grid-overlay" aria-hidden="true"></div>
 
-  <div class="ruler ruler--left">
+  <div class="ruler ruler--left" aria-hidden="true">
     <div class="bracket" id="bracket-l0"><i class="b-line"></i><i class="b-tick top"></i><i class="b-tick bot"></i><span class="b-label"></span></div>
     <div class="bracket" id="bracket-l1"><i class="b-line"></i><i class="b-tick top"></i><i class="b-tick bot"></i><span class="b-label"></span></div>
   </div>
-  <div class="ruler ruler--right">
+  <div class="ruler ruler--right" aria-hidden="true">
     <div class="bracket" id="bracket-r0"><i class="b-line"></i><i class="b-tick top"></i><i class="b-tick bot"></i><span class="b-label"></span></div>
     <div class="bracket" id="bracket-r1"><i class="b-line"></i><i class="b-tick top"></i><i class="b-tick bot"></i><span class="b-label"></span></div>
   </div>
 
   <main class="content">
-    <a class="handle mono" data-m="nav" href="https://github.com/marek-nogiec" target="_blank" rel="noreferrer">
+    <a class="handle mono" data-m="nav" href="<%- copy.navigation.githubUrl %>" target="_blank" rel="noopener noreferrer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05a9.36 9.36 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
-      @marek-nogiec
+      <%- copy.navigation.github %>
     </a>
-    <button class="theme-toggle" id="theme-toggle" type="button"><i></i><span id="theme-label"></span></button>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="<%- copy.theme.lightAction %>" data-dark-action="<%- copy.theme.darkAction %>" aria-pressed="false">
+      <i aria-hidden="true"></i>
+      <span id="theme-label"><span class="label-light"><%- copy.theme.light %></span><span class="label-dark"><%- copy.theme.dark %></span></span>
+    </button>
 
     <div data-m="gNavHead" style="grid-column: 1 / 5; grid-row: 2;"></div>
     <div data-m="gNavSub" style="grid-column: 5 / 7; grid-row: 2 / 4;"></div>
 
-    <h1 class="headline" data-m="headline">Marek Nogiec</h1>
-    <div class="subtitle" data-m="sub">Useful &amp; useless things</div>
+    <h1 class="headline" data-m="headline"><%- copy.hero.name %></h1>
+    <div class="subtitle" data-m="sub"><%- copy.hero.subtitle %></div>
     <div data-m="gSubBio" style="grid-column: 5 / 7; grid-row: 5 / 7;"></div>
-    <p class="bio" data-m="bio">Happily creating useful and totally useless apps and stuff.</p>
+    <p class="bio" data-m="bio"><%- copy.hero.bio %></p>
     <div data-m="gBioPage" style="grid-column: 5 / 7; grid-row: 10 / 20;"></div>
 
-    <div data-m="gHeadProj" style="grid-column: 1 / 5; grid-row: 7 / 11;"></div>
-    <div class="section-label" data-m="projects">Projects</div>
+    <div data-m="gHeadProj" style="grid-column: 1 / 5; grid-row: 5 / 11;"></div>
+    <h2 class="section-label" data-m="projects"><%- copy.projects.heading %></h2>
     <div data-m="gProjDrop" style="grid-column: 1 / 5; grid-row: 12;"></div>
 
-    <a class="project-title" data-m="drop" href="https://marek-nogiec.github.io/dropcast/" target="_blank" rel="noreferrer">Dropcast</a>
+    <a class="project-card" data-m="drop" href="<%- copy.projects.dropcast.url %>" target="_blank" rel="noopener noreferrer">
+      <h3 class="project-title"><%- copy.projects.dropcast.title %><span class="link-arrow" aria-hidden="true"><%- copy.symbols.arrow %></span></h3>
+      <p class="project-desc" data-m="desc"><%- copy.projects.dropcast.description %></p>
+    </a>
     <div data-m="gDropDesc" style="grid-column: 1 / 5; grid-row: 14;"></div>
-    <a class="project-desc" data-m="desc" href="https://marek-nogiec.github.io/dropcast/" target="_blank" rel="noreferrer">A native macOS app that streams a local movie to any Chromecast or Google Cast TV over your own Wi‑Fi.</a>
-    <div class="tags" data-m="tags">Rust · macOS · Google Cast · FFmpeg</div>
+    <div data-m="gDescTags" style="grid-column: 1 / 5; grid-row: 17;"></div>
+    <div class="tags" data-m="tags"><%- copy.projects.dropcast.tags %></div>
     <div data-m="gTagsFooter" style="grid-column: 1 / 5; grid-row: 19;"></div>
 
-    <div class="footer" data-m="footer">built with &lt;3 — Kraków, 2026</div>
-    <div class="page-count" data-m="pageinfo">01 / 01</div>
-    <a class="live-link" data-m="pageinfo" href="https://marek-nogiec.github.io/dropcast/" target="_blank" rel="noreferrer">Live</a>
+    <footer class="footer" data-m="footer"><%- copy.footer.credit %></footer>
+    <div class="page-count" data-m="pageinfo"><%- copy.footer.page %></div>
+    <a class="live-link" data-m="pageinfo" href="<%- copy.projects.dropcast.url %>" target="_blank" rel="noopener noreferrer"><%- copy.projects.dropcast.live %><span class="link-arrow" aria-hidden="true"><%- copy.symbols.arrow %></span></a>
     <div data-m="gFooterEdge" style="grid-column: 1 / 7; grid-row: 21;"></div>
   </main>
 </div>
