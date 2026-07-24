@@ -10,7 +10,8 @@ is one static landing page with no application framework.
 - **Edit `src/`, never `design/`.** `design/Marek Nogiec - Static.html` is the
   frozen historical reference the initial sources were split from. The current
   compact 21-row design intentionally supersedes parts of that file. Current
-  layout behavior is codified by `src/` plus `scripts/verify-browser.mjs`.
+  layout behavior is codified by `src/` plus
+  `scripts/verify-browser.spec.mjs`.
 - **Production is exactly two files.** Rsbuild inlines local CSS and JS into
   `dist/index.html` and emits one content-hashed Space Grotesk WOFF2 beside it.
   Verification rejects every other output file, local asset, or cross-origin
@@ -52,15 +53,16 @@ the title in owner pull requests, and the latest commit on pushes to `main`.
 `npm run verify:all` first checks that static page content still matches the
 committed font manifest, then builds the site once, asserts the exact two-file
 artifact contract, checks HTML/font/combined transfer budgets, runs negative
-verifier fixtures, and verifies the built artifact in Chrome.
+verifier fixtures, and verifies the built artifact in Chromium headless shell.
 
 `npm run verify:browser` remains the safe standalone browser command: it builds
 before starting the production preview. CI and `verify:all` use the internal
 `verify:browser:built` command after their existing build. Browser verification
-uses installed Chrome through the DevTools protocol. It checks 390, 959, 960,
-1024, 1199, 1200, and 1440px viewports; typography continuity; overflow; target
-sizes; semantic landmarks; theme state/persistence; both-theme contrast;
-reduced motion; permitted network hosts; accessibility-tree isolation; and
+uses Playwright Test with one Chromium headless-shell worker. Install the
+pinned browser with `npm run browser:install`. It checks 390, 959, 960, 1024,
+1199, 1200, and 1440px viewports; typography continuity; overflow; target sizes;
+semantic landmarks; theme state/persistence; both-theme contrast; reduced
+motion; permitted network hosts; accessibility-tree isolation; and
 measurement-row adjacency.
 
 CI additionally runs three mobile Lighthouse passes using `lighthouserc.json`.

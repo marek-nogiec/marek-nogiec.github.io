@@ -1,5 +1,7 @@
 node_modules/
 dist/
 .lighthouseci/
+playwright-report/
+test-results/
 .claude/settings.local.json
 .DS_Store
