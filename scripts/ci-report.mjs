@@ -99,6 +99,7 @@ export function buildCiReport({
   const config = readJson(resolve(root, "lighthouserc.json"));
   const outcomes = [
     env.INSTALL_OUTCOME,
+    env.COMMITLINT_OUTCOME,
     env.VERIFY_OUTCOME,
     env.BROWSER_OUTCOME,
     env.LIGHTHOUSE_OUTCOME,
@@ -112,7 +113,7 @@ export function buildCiReport({
     "## Homepage CI report",
     "",
     checksPassed
-      ? "✅ **All build, browser, Lighthouse, and budget checks passed.**"
+      ? "✅ **All commit, build, browser, Lighthouse, and budget checks passed.**"
       : "❌ **One or more CI checks failed or did not produce results.**",
   ];
 
@@ -126,6 +127,7 @@ export function buildCiReport({
     "| Check | Result |",
     "| --- | --- |",
     stepOutcome("Install locked dependencies", env.INSTALL_OUTCOME),
+    stepOutcome("Conventional commit messages", env.COMMITLINT_OUTCOME),
     stepOutcome("Build, static checks, size budgets, and unit tests", env.VERIFY_OUTCOME),
     stepOutcome("Cross-viewport browser verification", env.BROWSER_OUTCOME),
     stepOutcome("Lighthouse (3 runs)", env.LIGHTHOUSE_OUTCOME),

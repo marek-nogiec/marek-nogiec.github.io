@@ -12,6 +12,7 @@ Use Node.js 22.12–25 and npm 10.9–11. The pinned major version is recorded i
 ```bash
 nvm use
 npm ci --ignore-scripts
+npm run prepare             # install this repository's commit-msg hook
 ```
 
 ## Production architecture
@@ -37,6 +38,8 @@ npm ci --ignore-scripts
 npm run dev              # development server with hot reload
 npm run build            # production build
 npm run preview          # serve the production artifact
+npm run lint:commit      # validate the latest commit message
+npm run lint:commits     # validate branch commits after origin/main
 npm run fonts:verify      # ensure page text and committed subset still match
 npm run fonts:build       # regenerate subset (requires requirements-fonts.txt)
 npm run verify           # build, artifact contract, budgets, negative fixtures
@@ -90,6 +93,12 @@ metrics, and required accessibility/SEO audits. Lighthouse reports stay on the
 runner and are not uploaded as retained artifacts. Owner and Dependabot
 pull-request runs update one bot comment with the same report instead of adding
 a new comment on every push.
+
+Commit messages and pull request titles use the Conventional Commits format.
+The local `commit-msg` hook rejects invalid messages before Git creates a
+commit. CI validates every commit in owner pull requests, validates the pull
+request title used by squash merges, and validates the newest commit on pushes
+to `main`.
 
 ## Deployment
 
