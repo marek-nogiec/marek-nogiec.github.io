@@ -403,9 +403,9 @@ try {
   motion.forEach((duration) => assert.equal(duration, "0s"));
 
   const measurementScenarios = [
-    ["headline", "l", [[32, 32], [192, 128]]],
-    ["gHeadProj", "l", [[192, 128]]],
-    ["projects", "l", [[192, 128], [352, 32]]],
+    ["headline", "l", [[32, 32], [128, 192]]],
+    ["gHeadProj", "l", [[128, 192]]],
+    ["projects", "l", [[128, 192], [352, 32]]],
     ["gNavSub", "r", [[32, 64]]],
     ["sub", "r", [[32, 64], [128, 64]]],
     ["gSubBio", "r", [[128, 64]]],
