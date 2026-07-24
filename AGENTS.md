@@ -59,8 +59,9 @@ reduced motion; permitted network hosts; accessibility-tree isolation; and
 measurement-row adjacency.
 
 CI additionally runs three mobile Lighthouse passes using `lighthouserc.json`.
-`scripts/ci-report.mjs` writes the same artifact/Lighthouse report to the Actions
-job summary and to one bot comment that is updated in place on pull requests.
+`scripts/ci-report.mjs` generates the artifact/Lighthouse report that the
+workflow publishes to the Actions job summary and to one bot comment that is
+updated in place on pull requests.
 Budgets require Performance ≥98, Accessibility/Best Practices/SEO = 100,
 LCP <1.8s, CLS <0.01, and TBT <50ms.
 

@@ -1,10 +1,8 @@
 import {
-  appendFileSync,
   existsSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { randomUUID } from "node:crypto";
 import { basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DIST_BUDGETS, verifyDist } from "./verify-dist.mjs";
@@ -248,22 +246,6 @@ function main() {
     : resolve(DEFAULT_ROOT, "ci-report.md");
   const report = buildCiReport();
   writeFileSync(outputPath, report);
-
-  if (process.argv.includes("--github-summary")) {
-    const summaryPath = process.env.GITHUB_STEP_SUMMARY;
-    if (!summaryPath) throw new Error("GITHUB_STEP_SUMMARY is required with --github-summary");
-    appendFileSync(summaryPath, report);
-  }
-
-  if (process.argv.includes("--github-output")) {
-    const githubOutput = process.env.GITHUB_OUTPUT;
-    if (!githubOutput) throw new Error("GITHUB_OUTPUT is required with --github-output");
-    const delimiter = `CI_REPORT_${randomUUID()}`;
-    appendFileSync(
-      githubOutput,
-      `report<<${delimiter}\n${report}\n${delimiter}\n`,
-    );
-  }
 
   console.log(`CI report written to ${outputPath}`);
 }
