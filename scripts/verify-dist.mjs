@@ -1,62 +1,285 @@
-/* Sanity checks on the production bundle: dist/index.html must be a single
-   self-contained page — CSS and JS inlined, no local asset references. */
+/* Production contract:
+   - dist/ contains index.html and exactly one hashed WOFF2 subset
+   - CSS and JS are inlined
+   - no cross-origin runtime requests are allowed
+   - HTML, font, and combined cold transfer stay inside explicit budgets */
 
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import {
+  brotliCompressSync,
+  constants as zlibConstants,
+  gzipSync,
+} from "node:zlib";
+import {
+  readFileSync,
+  readdirSync,
+  statSync,
+} from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
-const ALLOWED_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com"];
+const DEFAULT_DIST = fileURLToPath(new URL("../dist/", import.meta.url));
+const LOCAL_BASE = "https://local.invalid/";
+export const DIST_BUDGETS = {
+  raw: 24 * 1024,
+  gzip: 8 * 1024,
+  brotli: 7 * 1024,
+  font: 6 * 1024,
+  totalGzip: 12 * 1024,
+  totalBrotli: 11 * 1024,
+};
 
-const failures = [];
-
-function check(ok, message) {
-  if (!ok) failures.push(message);
+function listFiles(directory, root = directory) {
+  return readdirSync(directory)
+    .flatMap((entry) => {
+      const path = join(directory, entry);
+      return statSync(path).isDirectory()
+        ? listFiles(path, root)
+        : [relative(root, path).replaceAll("\\", "/")];
+    })
+    .sort();
 }
 
-let html = "";
-try {
-  html = readFileSync(join(DIST, "index.html"), "utf8");
-} catch {
-  console.error("FAIL: dist/index.html does not exist — run the build first");
-  process.exit(1);
+function parseAttributes(tag) {
+  const attributes = new Map();
+  const pattern = /\b([:\w-]+)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/g;
+  let match;
+
+  while ((match = pattern.exec(tag))) {
+    attributes.set(match[1].toLowerCase(), match[3] ?? match[4] ?? match[5] ?? "");
+  }
+
+  return attributes;
 }
 
-const pages = readdirSync(DIST).filter((f) => f.endsWith(".html"));
-check(pages.length === 1, `expected a single HTML page in dist/, found: ${pages.join(", ")}`);
+function isAllowedResource(rawValue, context, allowedLocalAssets, failures) {
+  const value = rawValue.trim();
+  if (!value || value.startsWith("#") || value.startsWith("data:")) return;
 
-/* Attribute matching must survive minification: tolerate any attribute
-   order, and unquoted or single-quoted values. */
-const attr = (tag, name) => tag.match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`))?.[1].replace(/^["']|["']$/g, "");
+  let url;
+  try {
+    url = new URL(value, LOCAL_BASE);
+  } catch {
+    failures.push(`invalid resource URL in ${context}: ${value}`);
+    return;
+  }
 
-// CSS and JS must be inlined — assert markers that only exist inside the
-// assets themselves (not in the template markup) and survive minification
-const styles = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join("\n");
-const scripts = [...html.matchAll(/<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join("\n");
-check(styles.includes("--gl-strong"), "CSS is not inlined (no <style> block with expected content)");
-check(scripts.includes("pointerenter"), "JS is not inlined (no inline <script> with expected content)");
+  if (url.origin === new URL(LOCAL_BASE).origin) {
+    const path = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+    if (!allowedLocalAssets.has(path)) {
+      failures.push(`unapproved local asset reference in ${context}: ${value}`);
+    }
+    return;
+  }
 
-// no local asset references
-for (const [tag] of html.matchAll(/<script\b[^>]*>/g)) {
-  const src = attr(tag, "src");
-  check(src === undefined, `external script reference found: ${src}`);
-}
-for (const [tag] of html.matchAll(/<link\b[^>]*>/g)) {
-  if (!/\brel\s*=\s*["']?stylesheet/.test(tag)) continue;
-  const href = attr(tag, "href") ?? "";
-  const allowed = ALLOWED_HOSTS.some((h) => href.startsWith(`https://${h}`));
-  check(allowed, `stylesheet reference to disallowed source: ${href || tag}`);
+  failures.push(`disallowed external resource in ${context}: ${value}`);
 }
 
-// content markers
-for (const marker of ["Marek Nogiec", "Dropcast"]) {
-  check(html.includes(marker), `expected content missing: "${marker}"`);
+function checkResourceReferences(html, styles, scripts, allowedLocalAssets, failures) {
+  for (const [tag] of html.matchAll(/<(?:script|link|img|source|video|audio|iframe|object|embed|input)\b[^>]*>/gi)) {
+    const tagName = tag.match(/^<(\w+)/i)?.[1].toLowerCase() ?? "element";
+    const attributes = parseAttributes(tag);
+    const rel = new Set((attributes.get("rel") ?? "").toLowerCase().split(/\s+/).filter(Boolean));
+
+    const resourceAttributes = [];
+    if (tagName === "script" || ["img", "source", "video", "audio", "iframe", "embed", "input"].includes(tagName)) {
+      resourceAttributes.push("src");
+    }
+    if (tagName === "video") resourceAttributes.push("poster");
+    if (tagName === "object") resourceAttributes.push("data");
+    if (tagName === "source" || tagName === "img") resourceAttributes.push("srcset");
+    if (
+      tagName === "link"
+      && [...rel].some((value) => [
+        "stylesheet",
+        "preload",
+        "modulepreload",
+        "icon",
+        "manifest",
+        "apple-touch-icon",
+        "mask-icon",
+        "preconnect",
+        "dns-prefetch",
+      ].includes(value))
+    ) {
+      resourceAttributes.push("href");
+    }
+
+    resourceAttributes.forEach((name) => {
+      const rawValue = attributes.get(name);
+      if (rawValue === undefined) return;
+
+      if (name === "srcset") {
+        rawValue.split(",").forEach((candidate) => {
+          isAllowedResource(
+            candidate.trim().split(/\s+/)[0] ?? "",
+            `${tagName}[${name}]`,
+            allowedLocalAssets,
+            failures,
+          );
+        });
+      } else {
+        isAllowedResource(rawValue, `${tagName}[${name}]`, allowedLocalAssets, failures);
+      }
+    });
+  }
+
+  for (const match of styles.matchAll(/\burl\(\s*(['"]?)(.*?)\1\s*\)/gi)) {
+    isAllowedResource(match[2], "CSS url()", allowedLocalAssets, failures);
+  }
+
+  const dynamicRequestPatterns = [
+    /\bfetch\s*\(/,
+    /\bnew\s+(?:Worker|SharedWorker|WebSocket|EventSource)\s*\(/,
+    /\bXMLHttpRequest\b/,
+    /\.sendBeacon\s*\(/,
+  ];
+  dynamicRequestPatterns.forEach((pattern) => {
+    if (pattern.test(scripts)) failures.push(`runtime request API found: ${pattern}`);
+  });
 }
 
-if (failures.length > 0) {
-  console.error("dist verification FAILED:");
-  for (const f of failures) console.error(`  ✗ ${f}`);
-  process.exit(1);
+export function verifyDist(distDirectory = DEFAULT_DIST) {
+  const failures = [];
+  const check = (condition, message) => {
+    if (!condition) failures.push(message);
+  };
+
+  let files = [];
+  let html = "";
+
+  try {
+    files = listFiles(distDirectory);
+    html = readFileSync(join(distDirectory, "index.html"), "utf8");
+  } catch {
+    return {
+      failures: ["dist/index.html does not exist — run the build first"],
+      metrics: null,
+    };
+  }
+
+  const fontFiles = files.filter((file) => file.endsWith(".woff2"));
+  check(files.includes("index.html"), "dist/index.html is missing");
+  check(files.length === 2, `expected exactly two dist files, found: ${JSON.stringify(files)}`);
+  check(
+    fontFiles.length === 1 && /^space-grotesk\.[a-f0-9]{8}\.woff2$/.test(fontFiles[0]),
+    `expected one hashed Space Grotesk WOFF2, found: ${JSON.stringify(fontFiles)}`,
+  );
+  const allowedLocalAssets = new Set(fontFiles);
+
+  const styles = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+    .map((match) => match[1])
+    .join("\n");
+  const scripts = [...html.matchAll(/<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((match) => match[1])
+    .join("\n");
+
+  check(styles.includes("--gl-strong"), "CSS is not inlined with the expected design tokens");
+  check(scripts.includes("requestIdleCallback"), "JS is not inlined with deferred measurement setup");
+
+  checkResourceReferences(html, styles, scripts, allowedLocalAssets, failures);
+  if (fontFiles.length === 1) {
+    const escapedFontName = fontFiles[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const fontReferences = html.match(new RegExp(
+      escapedFontName,
+      "g",
+    )) ?? [];
+    check(fontReferences.length === 2, "font must be referenced once by preload and once by @font-face");
+    const hasValidPreload = [...html.matchAll(/<link\b[^>]*>/gi)].some(([tag]) => {
+      const attributes = parseAttributes(tag);
+      const rel = new Set(
+        (attributes.get("rel") ?? "").toLowerCase().split(/\s+/).filter(Boolean),
+      );
+      return rel.has("preload")
+        && attributes.get("href")?.endsWith(fontFiles[0])
+        && attributes.get("as") === "font"
+        && attributes.get("type") === "font/woff2"
+        && attributes.has("crossorigin");
+    });
+    check(hasValidPreload, "font asset is missing a valid crossorigin preload");
+  }
+
+  [
+    "Marek Nogiec",
+    "Dropcast",
+    'meta name="description"',
+    'aria-label="Light theme; switch to dark theme"',
+    'aria-hidden="true"',
+    "<h2",
+    "<footer",
+  ].forEach((marker) => {
+    check(html.includes(marker), `expected production marker missing: ${marker}`);
+  });
+
+  const raw = Buffer.byteLength(html);
+  const gzip = gzipSync(html, { level: 9 }).byteLength;
+  const brotli = brotliCompressSync(html, {
+    params: {
+      [zlibConstants.BROTLI_PARAM_QUALITY]: 11,
+    },
+  }).byteLength;
+  let font = 0;
+  if (fontFiles.length === 1) {
+    const fontBuffer = readFileSync(join(distDirectory, fontFiles[0]));
+    font = fontBuffer.byteLength;
+    check(fontBuffer.subarray(0, 4).toString("ascii") === "wOF2", "font asset is not WOFF2");
+  }
+  const totalGzip = gzip + font;
+  const totalBrotli = brotli + font;
+
+  check(raw <= DIST_BUDGETS.raw, `raw HTML budget exceeded: ${raw} > ${DIST_BUDGETS.raw} bytes`);
+  check(gzip <= DIST_BUDGETS.gzip, `gzip budget exceeded: ${gzip} > ${DIST_BUDGETS.gzip} bytes`);
+  check(brotli <= DIST_BUDGETS.brotli, `Brotli budget exceeded: ${brotli} > ${DIST_BUDGETS.brotli} bytes`);
+  check(font <= DIST_BUDGETS.font, `font budget exceeded: ${font} > ${DIST_BUDGETS.font} bytes`);
+  check(
+    totalGzip <= DIST_BUDGETS.totalGzip,
+    `total gzip + font budget exceeded: ${totalGzip} > ${DIST_BUDGETS.totalGzip} bytes`,
+  );
+  check(
+    totalBrotli <= DIST_BUDGETS.totalBrotli,
+    `total Brotli + font budget exceeded: ${totalBrotli} > ${DIST_BUDGETS.totalBrotli} bytes`,
+  );
+
+  return {
+    failures,
+    metrics: {
+      raw,
+      gzip,
+      brotli,
+      font,
+      totalGzip,
+      totalBrotli,
+      files,
+    },
+  };
 }
 
-console.log(`dist verification passed (index.html: ${(html.length / 1024).toFixed(1)} KiB, single inlined page)`);
+function main() {
+  const result = verifyDist();
+
+  if (result.failures.length > 0) {
+    console.error("dist verification FAILED:");
+    result.failures.forEach((failure) => console.error(`  ✗ ${failure}`));
+    process.exit(1);
+  }
+
+  const {
+    raw,
+    gzip,
+    brotli,
+    font,
+    totalGzip,
+    totalBrotli,
+  } = result.metrics;
+  console.log(
+    `dist verification passed (raw ${(raw / 1024).toFixed(1)} KiB, `
+    + `font ${(font / 1024).toFixed(1)} KiB, `
+    + `gzip + font ${(totalGzip / 1024).toFixed(1)} KiB, `
+    + `Brotli + font ${(totalBrotli / 1024).toFixed(1)} KiB; `
+    + `HTML only: gzip ${(gzip / 1024).toFixed(1)} KiB, `
+    + `Brotli ${(brotli / 1024).toFixed(1)} KiB)`,
+  );
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

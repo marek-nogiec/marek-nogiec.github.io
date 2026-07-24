@@ -2,20 +2,28 @@
    Marek Nogiec — landing page
    8-pt grid in "design px": 21 rows of 32, content 672 high,
    40 margins, 6 columns, page 1440 wide filling a 1440 viewport.
-   1rem = 10 design px; the root font-size scales with the
-   viewport (100vw / 144), so every size and spacing keeps the
-   exact proportions of the 1440 reference at any width. Only
-   hairlines stay a physical 1px. Grid + measurements appear
-   while the mouse moves. ≤840px is a single-column layout
-   rebased to a 390 reference.
+   1rem = 10 design px through compact/tablet sizes, then scales
+   with the viewport above 1440. This preserves readable text and
+   ordinary zoom instead of shrinking the entire canvas below the
+   reference size. Only hairlines stay a physical 1px. Grid +
+   measurements appear for fine pointers. ≤959px is a separate
+   single-column layout.
    ============================================================ */
+
+/* Content-derived Space Grotesk subset. Rsbuild emits this as one hashed,
+   independently cacheable WOFF2 and injects an early preload for it. */
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./assets/space-grotesk-subset.woff2") format("woff2");
+}
 
 * { box-sizing: border-box; }
 
 html {
-  font-size: calc(100vw / 144); /* 10px at 1440 viewport */
-  /* the page is exactly 100vw wide; on classic (non-overlay) scrollbars
-     100vw includes the scrollbar, so clip the sliver it would overflow */
+  font-size: max(10px, calc(100vw / 144)); /* never shrink below the 1440 type scale */
   overflow-x: hidden;
 }
 
@@ -23,10 +31,11 @@ html {
    preferred scheme by pinning color-scheme through data-theme. */
 :root {
   color-scheme: light dark;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   --bg: light-dark(#fbfbf9, #111110);
   --fg: light-dark(#1a1917, #ededea);
   --muted: light-dark(#6c6a62, #928f86);
-  --faint: light-dark(#a3a199, #66645d);
+  --faint: light-dark(#727069, #89867e);
   --border: light-dark(rgba(0, 0, 0, 0.09), rgba(255, 255, 255, 0.1));
   --border2: light-dark(rgba(0, 0, 0, 0.15), rgba(255, 255, 255, 0.17));
   /* accent shares the grid's hue 15; the dark stop is held at L 0.74 / C 0.15
@@ -49,12 +58,15 @@ html {
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"]  { color-scheme: dark; }
 
-/* toggle label text lives in CSS so it is correct before (and without) JS */
-#theme-label::after { content: "Light"; }
+/* Both labels are real DOM text; CSS selects the effective theme while the
+   button's aria-label describes the action. */
+#theme-label .label-dark { display: none; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) #theme-label::after { content: "Dark"; }
+  :root:not([data-theme="light"]) #theme-label .label-light { display: none; }
+  :root:not([data-theme="light"]) #theme-label .label-dark { display: inline; }
 }
-:root[data-theme="dark"] #theme-label::after { content: "Dark"; }
+:root[data-theme="dark"] #theme-label .label-light { display: none; }
+:root[data-theme="dark"] #theme-label .label-dark { display: inline; }
 
 body {
   margin: 0;
@@ -67,9 +79,14 @@ body {
 
 a { color: inherit; }
 
+:where(a, button):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0.3rem;
+}
+
 .page {
   position: relative;
-  width: 144rem; /* = 100vw: the 1440 page fills the reference viewport edge-to-edge */
+  width: 100vw;
   min-height: 100vh;
   margin: 0 auto;
   overflow: hidden;
@@ -116,7 +133,7 @@ a { color: inherit; }
   transition: opacity 0.28s ease; /* grid fades slightly faster than measurements */
 }
 
-.page.is-moving .grid-overlay { opacity: 1; }
+.page:is(.is-moving, .is-focus-measuring) .grid-overlay { opacity: 1; }
 
 /* ---- measurement rulers ----
    Brackets span the full ruler; the gap they mark is positioned via
@@ -149,7 +166,7 @@ a { color: inherit; }
   transition: opacity 0.79s ease 0.35s;
 }
 
-.page.is-moving .bracket.on {
+.page:is(.is-moving, .is-focus-measuring) .bracket.on {
   opacity: 1;
   transition: opacity 0.35s ease;
 }
@@ -184,7 +201,7 @@ a { color: inherit; }
   transform:
     translateY(calc((var(--gap-top) + var(--gap-h) / 2) * 0.1rem))
     translate(-50%, -50%) rotate(-90deg);
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--gl-label);
@@ -239,7 +256,7 @@ a { color: inherit; }
 }
 
 .mono {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   letter-spacing: 0.02em;
 }
 
@@ -268,7 +285,7 @@ a { color: inherit; }
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 1.05rem;
   color: var(--muted);
   background: transparent;
@@ -322,47 +339,59 @@ a { color: inherit; }
   color: var(--muted);
 }
 
+/* Preserve the right-column rhythm while the six-column grid is at its
+   narrowest; the bio returns to one column once three lines fit naturally. */
+@media (min-width: 960px) and (max-width: 1199px) {
+  .bio { grid-column: 5 / 7; }
+}
+
 .section-label {
   grid-column: 1 / 3;
   grid-row: 11;
+  margin: 0;
   line-height: 3.2rem;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 1.1rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--faint);
 }
 
-.project-title {
+.project-card {
   grid-column: 1 / 3;
-  grid-row: 13;
+  grid-row: 13 / 18;
+  display: grid;
+  grid-template-rows: repeat(5, 3.2rem);
+  color: inherit;
+  text-decoration: none;
+}
+
+.project-title {
+  grid-row: 1;
   /* hug the word: the arrow below anchors off the right edge of this box,
      and it also keeps the hover target off the empty half of the column */
   width: fit-content;
   position: relative;
+  margin: 0;
   line-height: 3.2rem;
   font-size: 2.4rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  text-decoration: none;
   transition: color 0.2s;
 }
 
-.project-title:hover { color: var(--accent); }
+.project-card:hover .project-title { color: var(--accent); }
 
 /* ---- link arrows ----
-   Shared by the project title and the Live link, so both read as the same kind
-   of thing: the glyph always shows, inherits the link's colour so it sits dark
-   at rest, and turns accent + nudges on hover. The project one is woken by the
-   description too (:has), so title and description read as one target.
+   Shared by the project title and the Live link. The glyphs live in the DOM
+   with aria-hidden rather than generated content, keeping accessible link names
+   clean while preserving the exact positioning and animation.
    Absolutely positioned so the glyph never joins the link's line box — in flow
    it could change the measured height of a [data-m] row and throw the rulers
    off the 32px grid. Both hosts need position + a content-width box for
    left: 100% to land beside the label rather than at the column edge. */
 
-.project-title::after,
-.live-link::after {
-  content: "→";
+.link-arrow {
   position: absolute;
   left: 100%;
   top: 0;
@@ -372,13 +401,11 @@ a { color: inherit; }
 
 /* the title is 2.4rem, so its arrow is scaled down to sit with the word;
    the Live link's inherits its own 1.3rem mono */
-.project-title::after { font-size: 1.8rem; }
+.project-title .link-arrow { font-size: 1.8rem; }
 
 @media (hover: hover) {
-  .content:has(:is(.project-title, .project-desc):hover) .project-title::after,
-  .live-link:hover::after {
-    /* set explicitly: hovering the description leaves the title itself dark,
-       so the arrow cannot rely on inheriting the accent in that case */
+  .project-card:hover .project-title .link-arrow,
+  .live-link:hover .link-arrow {
     color: var(--accent);
     /* the 0.5s lets the arrow settle before it nudges; being animation-delay it
        holds only the first pass, leaving the keyframe tail to pace the repeats */
@@ -404,15 +431,23 @@ a { color: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .content:has(:is(.project-title, .project-desc):hover) .project-title::after,
-  .live-link:hover::after {
+  .project-card:hover .project-title .link-arrow,
+  .live-link:hover .link-arrow {
     animation: none;
+  }
+
+  .grid-overlay,
+  .bracket,
+  .bracket .b-line,
+  .bracket .b-tick,
+  .bracket .b-label,
+  .dial .strip {
+    transition: none;
   }
 }
 
 .project-desc {
-  grid-column: 1 / 3;
-  grid-row: 15 / 18;
+  grid-row: 3 / 6;
   align-self: start;
   display: block;
   margin: 0;
@@ -423,13 +458,13 @@ a { color: inherit; }
   transition: color 0.2s;
 }
 
-.project-desc:hover { color: var(--fg); }
+.project-card:hover .project-desc { color: var(--fg); }
 
 .tags {
   grid-column: 1 / 4;
   grid-row: 18;
   line-height: 3.2rem;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 1.1rem;
   color: var(--faint);
   letter-spacing: 0.02em;
@@ -439,7 +474,7 @@ a { color: inherit; }
   grid-column: 1 / 3;
   grid-row: 20;
   line-height: 3.2rem;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 1.1rem;
   color: var(--faint);
   letter-spacing: 0.04em;
@@ -449,7 +484,7 @@ a { color: inherit; }
   grid-column: 5;
   grid-row: 20;
   line-height: 3.2rem;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 1.3rem;
   font-weight: 600;
 }
@@ -461,7 +496,7 @@ a { color: inherit; }
   width: fit-content;
   position: relative;
   line-height: 3.2rem;
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 1.3rem;
   font-weight: 600;
   text-decoration: none;
@@ -470,14 +505,14 @@ a { color: inherit; }
 
 .live-link:hover { color: var(--accent); }
 
-/* ---- mobile: single column, rebased to a 390 reference ----
+/* ---- compact/tablet: single column with a stable readable type scale ----
    Rulers and grid overlay are hover-driven and need the side
    gutters, so they go; the tinted circles stay. The g* spacer
    divs only exist to feed the measurement JS — hidden here
    (their inline style sets grid-column, not display). */
 
-@media (max-width: 840px) {
-  html { font-size: clamp(8px, calc(100vw / 39), 11px); } /* 10px at 390 viewport */
+@media (max-width: 959px) {
+  html { font-size: 10px; }
 
   .page { width: auto; }
 
@@ -496,8 +531,8 @@ a { color: inherit; }
 
   .headline {
     margin-top: 4.8rem;
-    font-size: 4.4rem;
-    line-height: 4.8rem;
+    font-size: clamp(4.4rem, calc(3.01rem + 3.56vw), 6rem);
+    line-height: clamp(4.8rem, calc(3.41rem + 3.56vw), 6.4rem);
   }
 
   .subtitle { margin-top: 1.6rem; }
@@ -509,10 +544,7 @@ a { color: inherit; }
 
   .section-label { margin-top: 6.4rem; }
 
-  .project-title {
-    display: block;
-    margin-top: 1.6rem;
-  }
+  .project-card { display: block; margin-top: 1.6rem; }
 
   .project-desc {
     margin-top: 0.8rem;

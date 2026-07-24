@@ -1,41 +1,117 @@
-name: Deploy to GitHub Pages
+name: Verify and optionally deploy
 
 on:
+  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+    inputs:
+      deploy:
+        description: Deploy the verified artifact to GitHub Pages
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: homepage-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
-      - run: npm run verify
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - id: chrome
+        uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd # v2.1.2
+      - id: install
+        name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - id: verify
+        name: Build, static checks, size budgets, and unit tests
+        run: npm run verify
+      - id: browser
+        name: Cross-viewport browser verification
+        run: npm run verify:browser
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+      - id: lighthouse
+        name: Lighthouse budgets
+        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12.6.2
+        with:
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: false
+      - name: Publish run summary
+        if: always()
+        run: node scripts/ci-report.mjs --output ci-report.md --github-summary
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+          LIGHTHOUSE_OUTCOME: ${{ steps.lighthouse.outcome }}
+          REPORT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Update pull request report
+        if: >-
+          always()
+          && github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { readFileSync } = require("node:fs");
+            const marker = "<!-- homepage-ci-report -->";
+            const body = readFileSync("ci-report.md", "utf8");
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...context.repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find(
+              (comment) => comment.user?.type === "Bot" && comment.body?.includes(marker),
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number,
+                body,
+              });
+            }
+      - name: Package Pages artifact
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
 
   deploy:
-    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
