@@ -1,6 +1,6 @@
 /* ============================================================
    Marek Nogiec — landing page
-   8-pt grid in "design px": 32 rows of 32, content 800 high,
+   8-pt grid in "design px": 21 rows of 32, content 672 high,
    40 margins, 6 columns, page 1440 wide filling a 1440 viewport.
    1rem = 10 design px; the root font-size scales with the
    viewport (100vw / 144), so every size and spacing keeps the
@@ -29,13 +29,20 @@ html {
   --faint: light-dark(#a3a199, #66645d);
   --border: light-dark(rgba(0, 0, 0, 0.09), rgba(255, 255, 255, 0.1));
   --border2: light-dark(rgba(0, 0, 0, 0.15), rgba(255, 255, 255, 0.17));
-  --accent: light-dark(oklch(0.56 0.14 155), oklch(0.82 0.14 155));
+  /* accent shares the grid's hue 15; the dark stop is held at L 0.74 / C 0.15
+     because hue 15 leaves sRGB above roughly C 0.10 at L 0.82 */
+  --accent: light-dark(oklch(0.56 0.19 15), oklch(0.74 0.15 15));
   /* grid ink: hue 15, opacity 0.2 */
   --gl-strong: light-dark(oklch(0.58 0.19 15 / 0.2),   oklch(0.74 0.19 15 / 0.2));
   --gl-mid:    light-dark(oklch(0.58 0.19 15 / 0.124), oklch(0.74 0.19 15 / 0.124));
   --gl-soft:   light-dark(oklch(0.58 0.19 15 / 0.06),  oklch(0.74 0.19 15 / 0.06));
   --gl-label:  light-dark(oklch(0.50 0.19 15 / 0.27),  oklch(0.80 0.19 15 / 0.27));
   --gl-tint:   light-dark(oklch(0.58 0.19 15 / 0.024), oklch(0.74 0.19 15 / 0.024));
+  /* Easing Wizard bounce — bounces 1, mass 2.7, damping 49, accuracy 3, 450ms
+     https://easingwizard.com/#0a2m1w2.7n49v450y32Z
+     The recoil is baked into the curve (peaks at 0.999, pulls back to 0.883,
+     settles at 1), so keyframes using it only need to mark the endpoints. */
+  --ease-bounce: linear(0, 0.25 17.3%, 0.328 22.3%, 0.405 26.9%, 0.48 31.1%, 0.565 35.5%, 0.885 51.2%, 0.948 54.6%, 0.999 57.7%, 0.946 61.7%, 0.927 63.5%, 0.911 65.3%, 0.899 67.1%, 0.89 68.8%, 0.885 70.6%, 0.883 72.4%, 0.887 75.3%, 0.9 78.5%, 0.918 81.5%, 0.966 88.6%, 0.986 92.3%, 0.993 94.2%, 0.997 96%, 1);
 }
 
 /* manual override (theme toggle) */
@@ -75,7 +82,7 @@ a { color: inherit; }
   left: 4rem;
   right: 4rem;
   top: 4rem;
-  height: 80rem;
+  height: 67.2rem;
   pointer-events: none;
   z-index: 0;
 }
@@ -97,7 +104,7 @@ a { color: inherit; }
   left: 4rem;
   right: 4rem;
   top: 4rem;
-  height: 80rem;
+  height: 67.2rem;
   pointer-events: none;
   z-index: 1;
   background-image:
@@ -120,7 +127,7 @@ a { color: inherit; }
 .ruler {
   position: absolute;
   top: 4rem;
-  height: 80rem;
+  height: 67.2rem;
   width: 4rem;
   z-index: 3;
   pointer-events: none;
@@ -136,7 +143,7 @@ a { color: inherit; }
   left: 0;
   top: 0;
   width: 4rem;
-  height: 80rem;
+  height: 67.2rem;
   opacity: 0;
   /* hide: slower fade with a small delay (after the grid) */
   transition: opacity 0.79s ease 0.35s;
@@ -239,13 +246,7 @@ a { color: inherit; }
 .handle {
   grid-column: 1 / 3;
   grid-row: 1;
-  line-height: 3.2rem;
-  font-size: 1.25rem;
-}
-
-.gh-link {
-  grid-column: 5;
-  grid-row: 1;
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
@@ -255,9 +256,9 @@ a { color: inherit; }
   transition: color 0.2s;
 }
 
-.gh-link svg { width: 1.4rem; height: 1.4rem; }
+.handle svg { width: 1.4rem; height: 1.4rem; }
 
-.gh-link:hover { color: var(--accent); }
+.handle:hover { color: var(--accent); }
 
 .theme-toggle {
   grid-column: 6;
@@ -312,7 +313,7 @@ a { color: inherit; }
 }
 
 .bio {
-  grid-column: 5 / 7;
+  grid-column: 5 / 6;
   grid-row: 7 / 10;
   align-self: start;
   margin: 0;
@@ -323,7 +324,7 @@ a { color: inherit; }
 
 .section-label {
   grid-column: 1 / 3;
-  grid-row: 13;
+  grid-row: 11;
   line-height: 3.2rem;
   font-family: "JetBrains Mono", monospace;
   font-size: 1.1rem;
@@ -334,7 +335,11 @@ a { color: inherit; }
 
 .project-title {
   grid-column: 1 / 3;
-  grid-row: 15;
+  grid-row: 13;
+  /* hug the word: the arrow below anchors off the right edge of this box,
+     and it also keeps the hover target off the empty half of the column */
+  width: fit-content;
+  position: relative;
   line-height: 3.2rem;
   font-size: 2.4rem;
   font-weight: 700;
@@ -345,9 +350,69 @@ a { color: inherit; }
 
 .project-title:hover { color: var(--accent); }
 
+/* ---- link arrows ----
+   Shared by the project title and the Live link, so both read as the same kind
+   of thing: the glyph always shows, inherits the link's colour so it sits dark
+   at rest, and turns accent + nudges on hover. The project one is woken by the
+   description too (:has), so title and description read as one target.
+   Absolutely positioned so the glyph never joins the link's line box — in flow
+   it could change the measured height of a [data-m] row and throw the rulers
+   off the 32px grid. Both hosts need position + a content-width box for
+   left: 100% to land beside the label rather than at the column edge. */
+
+.project-title::after,
+.live-link::after {
+  content: "→";
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin-left: 0.8rem;
+  transition: color 0.2s;
+}
+
+/* the title is 2.4rem, so its arrow is scaled down to sit with the word;
+   the Live link's inherits its own 1.3rem mono */
+.project-title::after { font-size: 1.8rem; }
+
+@media (hover: hover) {
+  .content:has(:is(.project-title, .project-desc):hover) .project-title::after,
+  .live-link:hover::after {
+    /* set explicitly: hovering the description leaves the title itself dark,
+       so the arrow cannot rely on inheriting the accent in that case */
+    color: var(--accent);
+    /* the 0.5s lets the arrow settle before it nudges; being animation-delay it
+       holds only the first pass, leaving the keyframe tail to pace the repeats */
+    animation: arrow-nudge 3s 0.5s infinite;
+    /* set here, not in the keyframes: a var() reference is not substituted for
+       animation-timing-function inside @keyframes — it silently degrades to
+       linear. Nothing overrides it, so the curve governs every segment. */
+    animation-timing-function: var(--ease-bounce);
+  }
+}
+
+/* Out and back are both the config's 450ms — 15% of 3s — and both run
+   --ease-bounce, whose recoil is the bounce, so these keyframes only mark
+   where the arrow starts and lands. Note the recoil lands at whichever end a
+   segment finishes on: outward it bounces off the right, but the return
+   bounces off the rest position, right next to the word. The flat tail from
+   30% to 100% is the 2.1s breather between nudges, which has to live here
+   since animation-delay only offsets the first iteration. */
+@keyframes arrow-nudge {
+  0%        { transform: translateX(0); }
+  15%       { transform: translateX(0.7rem); }
+  30%, 100% { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content:has(:is(.project-title, .project-desc):hover) .project-title::after,
+  .live-link:hover::after {
+    animation: none;
+  }
+}
+
 .project-desc {
-  grid-column: 1 / 4;
-  grid-row: 17 / 20;
+  grid-column: 1 / 3;
+  grid-row: 15 / 18;
   align-self: start;
   display: block;
   margin: 0;
@@ -362,7 +427,7 @@ a { color: inherit; }
 
 .tags {
   grid-column: 1 / 4;
-  grid-row: 22;
+  grid-row: 18;
   line-height: 3.2rem;
   font-family: "JetBrains Mono", monospace;
   font-size: 1.1rem;
@@ -372,7 +437,7 @@ a { color: inherit; }
 
 .footer {
   grid-column: 1 / 3;
-  grid-row: 24;
+  grid-row: 20;
   line-height: 3.2rem;
   font-family: "JetBrains Mono", monospace;
   font-size: 1.1rem;
@@ -382,7 +447,7 @@ a { color: inherit; }
 
 .page-count {
   grid-column: 5;
-  grid-row: 24;
+  grid-row: 20;
   line-height: 3.2rem;
   font-family: "JetBrains Mono", monospace;
   font-size: 1.3rem;
@@ -391,7 +456,10 @@ a { color: inherit; }
 
 .live-link {
   grid-column: 6;
-  grid-row: 24;
+  grid-row: 20;
+  /* hug the word so the arrow anchors off the right edge of the label */
+  width: fit-content;
+  position: relative;
   line-height: 3.2rem;
   font-family: "JetBrains Mono", monospace;
   font-size: 1.3rem;
@@ -423,8 +491,6 @@ a { color: inherit; }
 
   /* block flow: grid placement props become inert, DOM order rules */
   .content { display: block; padding: 3.2rem 2.4rem 4rem; }
-
-  .handle { display: block; }
 
   .theme-toggle { position: absolute; top: 2.7rem; right: 2.4rem; }
 
