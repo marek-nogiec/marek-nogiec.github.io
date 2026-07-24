@@ -59,6 +59,7 @@ jobs:
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
           BROWSER_OUTCOME: ${{ steps.browser.outcome }}
           LIGHTHOUSE_OUTCOME: ${{ steps.lighthouse.outcome }}
+          REPORT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Update pull request report
         if: >-
           always()

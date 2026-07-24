@@ -69,7 +69,7 @@ function loadLighthouse(root) {
 function workflowContext(env) {
   const repository = env.GITHUB_REPOSITORY;
   const server = env.GITHUB_SERVER_URL ?? "https://github.com";
-  const sha = env.GITHUB_SHA;
+  const sha = env.REPORT_SHA ?? env.GITHUB_SHA;
   const pieces = [];
 
   if (repository && env.GITHUB_RUN_ID) {
