@@ -27,6 +27,6 @@
     "verify": "npm run fonts:verify && rsbuild build && node scripts/verify-dist.mjs && npm test"
   },
   "devDependencies": {
-    "@rsbuild/core": "^2.1.7"
+    "@rsbuild/core": "^2.1.8"
   }
 }
