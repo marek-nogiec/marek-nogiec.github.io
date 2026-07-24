@@ -19,10 +19,12 @@
     "dev": "rsbuild dev",
     "build": "rsbuild build",
     "preview": "rsbuild preview",
+    "fonts:build": "python3 scripts/build-font-subset.py",
+    "fonts:verify": "node scripts/font-glyphs.mjs --check",
     "test": "node --test scripts/*.test.mjs",
     "verify:browser": "npm run build && node scripts/verify-browser.mjs",
     "verify:dist": "node scripts/verify-dist.mjs",
-    "verify": "rsbuild build && node scripts/verify-dist.mjs && npm test"
+    "verify": "npm run fonts:verify && rsbuild build && node scripts/verify-dist.mjs && npm test"
   },
   "devDependencies": {
     "@rsbuild/core": "^2.1.7"
