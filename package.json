@@ -29,6 +29,7 @@
     "browser:install": "playwright install --only-shell chromium",
     "verify:browser:built": "playwright test --config playwright.config.mjs",
     "verify:browser": "npm run build && npm run verify:browser:built",
+    "verify:lighthouse:built": "node scripts/verify-lighthouse.mjs",
     "verify:dist": "node scripts/verify-dist.mjs",
     "verify": "npm run fonts:verify && rsbuild build && node scripts/verify-dist.mjs && npm test",
     "verify:all": "npm run verify && npm run verify:browser:built"
@@ -36,6 +37,7 @@
   "devDependencies": {
     "@commitlint/cli": "21.2.1",
     "@commitlint/config-conventional": "21.2.0",
+    "@lhci/cli": "0.15.1",
     "@playwright/test": "1.61.1",
     "@rsbuild/core": "^2.1.8",
     "simple-git-hooks": "2.13.1"

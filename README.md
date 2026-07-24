@@ -45,6 +45,7 @@ npm run fonts:build       # regenerate subset (requires requirements-fonts.txt)
 npm run browser:install   # install Playwright's pinned Chromium headless shell
 npm run verify           # build, artifact contract, budgets, negative fixtures
 npm run verify:browser   # responsive/a11y/network checks in the headless shell
+npm run verify:lighthouse:built # Lighthouse budgets against an existing build
 npm run verify:all       # build once, then run every static and browser check
 ```
 
@@ -80,7 +81,8 @@ Browser verification covers 390, 959, 960, 1024, 1199, 1200, and 1440px widths, 
 contrast, target sizing, overflow, reduced motion, theme persistence, permitted
 requests, accessibility-tree isolation, and measurement-grid correctness.
 
-CI runs three additional mobile Lighthouse passes with these budgets:
+CI runs three additional mobile Lighthouse passes in Playwright's pinned
+Chromium headless shell with these budgets:
 
 - Performance ≥98
 - Accessibility, Best Practices, and SEO = 100
