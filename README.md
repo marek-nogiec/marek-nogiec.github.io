@@ -41,6 +41,7 @@ npm run fonts:verify      # ensure page text and committed subset still match
 npm run fonts:build       # regenerate subset (requires requirements-fonts.txt)
 npm run verify           # build, artifact contract, budgets, negative fixtures
 npm run verify:browser   # responsive/a11y/network checks in installed Chrome
+npm run verify:all       # build once, then run every static and browser check
 ```
 
 ## Quality gates
