@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "description": "Personal homepage, served via GitHub Pages",
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "engines": {
     "node": ">=22.12.0 <26",

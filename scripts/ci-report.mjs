@@ -4,6 +4,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DIST_BUDGETS, verifyDist } from "./verify-dist.mjs";
@@ -234,7 +235,7 @@ export function buildCiReport({
 
   lines.push(
     "",
-    "<sub>Generated from the checked-in budgets and the current run’s build/Lighthouse artifacts. This comment is updated in place.</sub>",
+    "<sub>Generated from the checked-in budgets, build output, and in-run Lighthouse reports. This comment is updated in place.</sub>",
     "",
   );
   return lines.join("\n");
@@ -252,6 +253,16 @@ function main() {
     const summaryPath = process.env.GITHUB_STEP_SUMMARY;
     if (!summaryPath) throw new Error("GITHUB_STEP_SUMMARY is required with --github-summary");
     appendFileSync(summaryPath, report);
+  }
+
+  if (process.argv.includes("--github-output")) {
+    const githubOutput = process.env.GITHUB_OUTPUT;
+    if (!githubOutput) throw new Error("GITHUB_OUTPUT is required with --github-output");
+    const delimiter = `CI_REPORT_${randomUUID()}`;
+    appendFileSync(
+      githubOutput,
+      `report<<${delimiter}\n${report}\n${delimiter}\n`,
+    );
   }
 
   console.log(`CI report written to ${outputPath}`);
