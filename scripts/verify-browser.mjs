@@ -18,6 +18,7 @@ const HOST = "127.0.0.1";
 const PORT = 4173;
 const PAGE_URL = `http://${HOST}:${PORT}/`;
 const PROFILE = mkdtempSync(join(tmpdir(), "homepage-chrome-"));
+const FORCE_FOCUS_MEASUREMENTS = process.env.FORCE_FOCUS_MEASUREMENTS === "1";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const RSBUILD_BIN = fileURLToPath(
   new URL("../node_modules/@rsbuild/core/bin/rsbuild.js", import.meta.url),
@@ -225,7 +226,8 @@ async function measureTarget(client, key, index = 0) {
   return client.evaluate(`(async () => {
     const target = [...document.querySelectorAll('[data-m="${key}"]')][${index}];
     if (!target) throw new Error("missing measurement target: ${key}[${index}]");
-    const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const finePointer = ${!FORCE_FOCUS_MEASUREMENTS} &&
+      matchMedia("(hover: hover) and (pointer: fine)").matches;
 
     if (finePointer) {
       target.dispatchEvent(new PointerEvent("pointerover", {
@@ -240,6 +242,7 @@ async function measureTarget(client, key, index = 0) {
     } else {
       target.tabIndex = -1;
       target.focus();
+      target.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     }
     await new Promise(requestAnimationFrame);
 
