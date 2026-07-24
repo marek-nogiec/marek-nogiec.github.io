@@ -6,8 +6,11 @@ JavaScript.
 
 ## Production architecture
 
-- Sources stay readable in `src/index.html`, `src/styles.css`, and
-  `src/index.js`.
+- All user-facing copy lives in `src/content/en.json`. Rsbuild resolves it into
+  the escaped `src/index.html` template at build time; no content catalog or
+  localization code ships to the browser.
+- Layout, styles, and behavior stay readable in `src/index.html`,
+  `src/styles.css`, and `src/index.js`.
 - Rsbuild minifies and inlines local CSS and JS into `dist/index.html`.
 - Space Grotesk is statically subset from the page's actual non-monospace text.
   Production emits one preloaded, content-hashed WOFF2 beside the HTML; there
@@ -50,11 +53,13 @@ python3 -m pip install -r requirements-fonts.txt
 npm run fonts:build
 ```
 
-The static extractor assigns text by the real UI-mono selectors, records the
-required codepoints and source/subset hashes, trims the variable weight axis to
-400–700, retains font license metadata, and fails verification if content and
-the committed artifact diverge. Dynamic ruler digits use system monospace, so
-all values from 0–9 remain available without browser-driven glyph collection.
+The subset generator reads six semantic Space Grotesk fields directly from the
+content catalog, records their codepoints and source/subset hashes, trims the
+variable weight axis to 400–700, retains font license metadata, and fails
+verification if copy and the committed artifact diverge. Metadata and
+system-monospace fields never enter the custom subset. Dynamic ruler digits use
+system monospace, so all values from 0–9 remain available without browser-driven
+glyph collection.
 
 Browser verification covers 390, 959, 960, 1024, 1199, 1200, and 1440px widths, both themes,
 contrast, target sizing, overflow, reduced motion, theme persistence, permitted
@@ -82,11 +87,12 @@ a separate release decision; merging code alone cannot expose the site.
 | Path | Purpose |
 | --- | --- |
 | `src/` | Editable page sources |
+| `src/content/en.json` | Build-time source of all user-facing copy |
 | `design/` | Frozen historical reference; never edit |
 | `fonts/` | Pinned Space Grotesk source, OFL, and subset manifest |
 | `src/assets/` | Generated production font subset |
-| `scripts/font-glyphs.mjs` | Static content extractor and subset drift gate |
-| `scripts/build-font-subset.py` | Deterministic FontTools subset generator |
+| `scripts/content.test.mjs` | Catalog completeness and no-duplicate-copy gate |
+| `scripts/build-font-subset.py` | Catalog reader, drift gate, and deterministic subset generator |
 | `scripts/verify-dist.mjs` | Two-file/resource/budget verifier |
 | `scripts/verify-browser.mjs` | Dependency-free Chrome/CDP browser checks |
 | `lighthouserc.json` | Repeat-run Lighthouse budgets |

@@ -8,6 +8,7 @@ import "./styles.css";
   var root = document.documentElement;
   var mqDark = window.matchMedia("(prefers-color-scheme: dark)");
   var themeToggle = document.getElementById("theme-toggle");
+  var lightThemeAction = themeToggle.getAttribute("aria-label");
 
   function effectiveTheme() {
     return root.dataset.theme || (mqDark.matches ? "dark" : "light");
@@ -18,7 +19,7 @@ import "./styles.css";
     themeToggle.setAttribute("aria-pressed", String(isDark));
     themeToggle.setAttribute(
       "aria-label",
-      (isDark ? "Dark" : "Light") + " theme; switch to " + (isDark ? "light" : "dark") + " theme",
+      isDark ? themeToggle.dataset.darkAction : lightThemeAction,
     );
   }
 
