@@ -65,7 +65,8 @@ semantic landmarks; theme state/persistence; both-theme contrast; reduced
 motion; permitted network hosts; accessibility-tree isolation; and
 measurement-row adjacency.
 
-CI additionally runs three mobile Lighthouse passes using `lighthouserc.json`.
+CI additionally runs three mobile Lighthouse passes using `lighthouserc.json`
+and Playwright's pinned Chromium headless shell.
 `scripts/ci-report.mjs` generates the artifact/Lighthouse report that the
 workflow publishes to the Actions job summary and to one bot comment that is
 updated in place on pull requests.

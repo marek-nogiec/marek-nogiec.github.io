@@ -61,11 +61,7 @@ jobs:
         run: npm run verify:browser:built
       - id: lighthouse
         name: Lighthouse budgets
-        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12.6.2
-        with:
-          configPath: ./lighthouserc.json
-          uploadArtifacts: false
-          temporaryPublicStorage: false
+        run: npm run verify:lighthouse:built
       - id: report
         name: Publish run summary
         if: always()
