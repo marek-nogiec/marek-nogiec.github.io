@@ -105,11 +105,18 @@ if (chromeVersion.status !== 0) {
 console.log(`Lighthouse browser: ${chromeVersion.stdout.trim()} (${chromePath})`);
 
 const lhciBin = packageBin("@lhci/cli", "lhci");
-const lhci = spawn(process.execPath, [
+const lhciArgs = [
   lhciBin,
   "autorun",
   "--config=./lighthouserc.json",
-], {
+];
+
+if (process.platform === "linux" && process.env.GITHUB_ACTIONS === "true") {
+  lhciArgs.push("--collect.settings.chromeFlags=--no-sandbox");
+  console.log("Lighthouse browser sandbox: disabled for the GitHub Actions runner");
+}
+
+const lhci = spawn(process.execPath, lhciArgs, {
   cwd: ROOT,
   env: {
     ...process.env,
