@@ -61,20 +61,26 @@ try {
 
     <div data-m="gHeadProj" style="grid-column: 1 / 5; grid-row: 5 / 11;"></div>
     <h2 class="section-label" data-m="projects"><%- copy.projects.heading %></h2>
-    <div data-m="gProjDrop" style="grid-column: 1 / 5; grid-row: 12;"></div>
+    <div data-m="gProjCards" style="grid-column: 1 / 5; grid-row: 12;"></div>
 
-    <a class="project-card" data-m="drop" href="<%- copy.projects.dropcast.url %>" target="_blank" rel="noopener noreferrer">
+    <a class="project-card" data-m="card" href="<%- copy.projects.dropcast.url %>" target="_blank" rel="noopener noreferrer">
       <h3 class="project-title"><%- copy.projects.dropcast.title %><span class="link-arrow" aria-hidden="true"><%- copy.symbols.arrow %></span></h3>
       <p class="project-desc" data-m="desc"><%- copy.projects.dropcast.description %></p>
     </a>
-    <div data-m="gDropDesc" style="grid-column: 1 / 5; grid-row: 14;"></div>
-    <div data-m="gDescTags" style="grid-column: 1 / 5; grid-row: 17;"></div>
     <div class="tags" data-m="tags"><%- copy.projects.dropcast.tags %></div>
+
+    <a class="project-card project-card--second" data-m="card" href="<%- copy.projects.barkley.url %>" target="_blank" rel="noopener noreferrer">
+      <h3 class="project-title"><%- copy.projects.barkley.title %><span class="link-arrow" aria-hidden="true"><%- copy.symbols.arrow %></span></h3>
+      <p class="project-desc" data-m="desc"><%- copy.projects.barkley.description %></p>
+    </a>
+    <div class="tags tags--second" data-m="tags"><%- copy.projects.barkley.tags %></div>
+
+    <div data-m="gTitleDesc" style="grid-column: 1 / 5; grid-row: 14;"></div>
+    <div data-m="gDescTags" style="grid-column: 1 / 5; grid-row: 17;"></div>
     <div data-m="gTagsFooter" style="grid-column: 1 / 5; grid-row: 19;"></div>
 
     <footer class="footer" data-m="footer"><%- copy.footer.credit %></footer>
     <div class="page-count" data-m="pageinfo"><%- copy.footer.page %></div>
-    <a class="live-link" data-m="pageinfo" href="<%- copy.projects.dropcast.url %>" target="_blank" rel="noopener noreferrer"><%- copy.projects.dropcast.live %><span class="link-arrow" aria-hidden="true"><%- copy.symbols.arrow %></span></a>
     <div data-m="gFooterEdge" style="grid-column: 1 / 7; grid-row: 21;"></div>
   </main>
 </div>

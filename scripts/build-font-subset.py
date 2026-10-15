@@ -28,12 +28,15 @@ SPACE_FONT_FIELDS = (
     ("hero", "bio"),
     ("projects", "dropcast", "title"),
     ("projects", "dropcast", "description"),
+    ("projects", "barkley", "title"),
+    ("projects", "barkley", "description"),
     ("symbols", "arrow"),
 )
 
-# Space Grotesk 2.0 has no U+2011 mapping. The existing Wi‑Fi hyphen therefore
-# continues to use the sans-serif fallback without changing layout.
-INTENTIONAL_FALLBACKS = frozenset("‑")
+# Space Grotesk 2.0 has no U+2011 or U+2318 mapping. The Wi‑Fi hyphen and the
+# ⌘ key symbol therefore use the sans-serif fallback; descriptions sit on fixed
+# 32px line boxes, so the fallback glyphs cannot change layout.
+INTENTIONAL_FALLBACKS = frozenset("‑⌘")
 
 
 def load_content() -> dict[str, Any]:

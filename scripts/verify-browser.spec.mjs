@@ -65,7 +65,7 @@ async function loadViewport(page, width) {
   }
 
   await expect(page.locator("main h2")).toHaveCount(1);
-  await expect(page.locator("main h3")).toHaveCount(1);
+  await expect(page.locator("main h3")).toHaveCount(2);
   await expect(page.locator("main footer")).toHaveCount(1);
   await expect(page.locator("#theme-toggle")).toHaveAttribute(
     "aria-label",
@@ -96,11 +96,27 @@ async function loadViewport(page, width) {
   const bioRect = await page.locator(".bio").boundingBox();
   expect(bioRect, `${width}px bio must have a rendered box`).not.toBeNull();
 
+  const projects = await page.evaluate(() => {
+    const box = (element) => {
+      const rect = element.getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right };
+    };
+    const cards = [...document.querySelectorAll(".project-card")];
+    const tags = [...document.querySelectorAll(".tags")];
+    return {
+      cards: cards.map(box),
+      descriptions: cards.map((card) => box(card.querySelector(".project-desc"))),
+      tags: tags.map(box),
+    };
+  });
+  expect(projects.cards, `${width}px must render two project cards`).toHaveLength(2);
+  expect(projects.tags, `${width}px must render one tag line per project`).toHaveLength(2);
+
   const targets = {
     handle: page.locator(".handle").first(),
     theme: page.locator(".theme-toggle"),
-    project: page.locator(".project-card").first(),
-    live: page.locator(".live-link").first(),
+    firstProject: page.locator(".project-card").nth(0),
+    secondProject: page.locator(".project-card").nth(1),
   };
   for (const [name, locator] of Object.entries(targets)) {
     const box = await locator.boundingBox();
@@ -125,7 +141,7 @@ async function loadViewport(page, width) {
     });
   }
 
-  return { ...metrics, bioRect };
+  return { ...metrics, bioRect, projects };
 }
 
 async function measureTarget(page, key, index = 0) {
@@ -189,6 +205,28 @@ test("responsive layout, semantics, targets, and requests", async ({ page }) => 
         result.bioRect.height,
         `${width}px bio exceeds its three-row grid area`,
       ).toBeLessThanOrEqual(96);
+
+      const [first, second] = result.projects.cards;
+      expect(second.top, `${width}px project cards must share rows`).toBe(first.top);
+      expect(
+        Math.abs(second.left - first.right),
+        `${width}px second project must start where the first column pair ends`,
+      ).toBeLessThanOrEqual(1);
+      result.projects.descriptions.forEach((description, index) => {
+        expect(
+          description.bottom - description.top,
+          `${width}px project ${index + 1} description exceeds its three-row grid area`,
+        ).toBeLessThanOrEqual(96);
+        expect(
+          description.bottom,
+          `${width}px project ${index + 1} description overlaps its tags`,
+        ).toBeLessThanOrEqual(result.projects.tags[index].top + 0.5);
+      });
+    } else {
+      expect(
+        result.projects.cards[1].top,
+        `${width}px second project must stack below the first project's tags`,
+      ).toBeGreaterThan(result.projects.tags[0].bottom);
     }
     results.push(result);
   }
@@ -318,7 +356,13 @@ test("measurement rulers follow rendered row adjacency", async ({ page }) => {
     }
   }
 
-  const tags = page.locator(".tags");
+  for (const index of [0, 1]) {
+    await test.step(`tags ${index + 1} ruler`, () => expectTagRulers(page, index));
+  }
+});
+
+async function expectTagRulers(page, index) {
+  const tags = page.locator(".tags").nth(index);
   await tags.evaluate((element) => {
     element.tabIndex = -1;
   });
@@ -346,7 +390,7 @@ test("measurement rulers follow rendered row adjacency", async ({ page }) => {
     { top: "512", height: "32" },
     { top: "576", height: "32" },
   ]);
-});
+}
 
 test("measurement digits stay out of the accessibility tree", async ({ page }) => {
   await loadPage(page);

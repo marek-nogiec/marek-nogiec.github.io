@@ -201,6 +201,7 @@ export function verifyDist(distDirectory = DEFAULT_DIST) {
   [
     "Marek Nogiec",
     "Dropcast",
+    "Barkley",
     'meta name="description"',
     'aria-label="Light theme; switch to dark theme"',
     'aria-hidden="true"',
