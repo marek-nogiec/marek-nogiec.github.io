@@ -27,8 +27,13 @@
       "title": "Dropcast",
       "description": "An open-source native macOS app that streams a local movie to any Chromecast or Google Cast TV over your own Wi‑Fi.",
       "tags": "Rust · macOS · Google Cast · FFmpeg",
-      "live": "Live",
       "url": "https://nogiec.org/dropcast/"
+    },
+    "barkley": {
+      "title": "Barkley",
+      "description": "An open-source macOS launcher with a native glass panel. Double-tap ⌘, type, and let tiny plugins do the rest.",
+      "tags": "Rust · macOS · AppKit · Plugins",
+      "url": "https://nogiec.org/barkley/"
     }
   },
   "footer": {

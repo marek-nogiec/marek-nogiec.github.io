@@ -357,14 +357,24 @@ a { color: inherit; }
   color: var(--faint);
 }
 
+/* Two projects sit side by side across the left four columns: the first in
+   1–2, the second in 3–4, sharing the same rows so every spacer row still
+   separates the same kind of content. The grid has no column gaps, so the
+   right padding is the gutter that keeps the first description off the
+   second card. At 960px Dropcast wraps to a fourth line once the gutter
+   reaches 1.6rem (Linux renders the fallback ‑ in Wi‑Fi wider than macOS),
+   so 0.8rem leaves about 8px of headroom on both. */
 .project-card {
   grid-column: 1 / 3;
   grid-row: 13 / 18;
   display: grid;
   grid-template-rows: repeat(5, 3.2rem);
+  padding-right: 0.8rem;
   color: inherit;
   text-decoration: none;
 }
+
+.project-card--second { grid-column: 3 / 5; }
 
 .project-title {
   grid-row: 1;
@@ -383,12 +393,12 @@ a { color: inherit; }
 .project-card:hover .project-title { color: var(--accent); }
 
 /* ---- link arrows ----
-   Shared by the project title and the Live link. The glyphs live in the DOM
+   Used by the project titles. The glyphs live in the DOM
    with aria-hidden rather than generated content, keeping accessible link names
    clean while preserving the exact positioning and animation.
    Absolutely positioned so the glyph never joins the link's line box — in flow
    it could change the measured height of a [data-m] row and throw the rulers
-   off the 32px grid. Both hosts need position + a content-width box for
+   off the 32px grid. The host needs position + a content-width box for
    left: 100% to land beside the label rather than at the column edge. */
 
 .link-arrow {
@@ -399,13 +409,11 @@ a { color: inherit; }
   transition: color 0.2s;
 }
 
-/* the title is 2.4rem, so its arrow is scaled down to sit with the word;
-   the Live link's inherits its own 1.3rem mono */
+/* the title is 2.4rem, so its arrow is scaled down to sit with the word */
 .project-title .link-arrow { font-size: 1.8rem; }
 
 @media (hover: hover) {
-  .project-card:hover .project-title .link-arrow,
-  .live-link:hover .link-arrow {
+  .project-card:hover .project-title .link-arrow {
     color: var(--accent);
     /* the 0.5s lets the arrow settle before it nudges; being animation-delay it
        holds only the first pass, leaving the keyframe tail to pace the repeats */
@@ -431,8 +439,7 @@ a { color: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project-card:hover .project-title .link-arrow,
-  .live-link:hover .link-arrow {
+  .project-card:hover .project-title .link-arrow {
     animation: none;
   }
 
@@ -461,7 +468,7 @@ a { color: inherit; }
 .project-card:hover .project-desc { color: var(--fg); }
 
 .tags {
-  grid-column: 1 / 4;
+  grid-column: 1 / 3;
   grid-row: 18;
   line-height: 3.2rem;
   font-family: var(--font-mono);
@@ -469,6 +476,8 @@ a { color: inherit; }
   color: var(--faint);
   letter-spacing: 0.02em;
 }
+
+.tags--second { grid-column: 3 / 5; }
 
 .footer {
   grid-column: 1 / 3;
@@ -488,22 +497,6 @@ a { color: inherit; }
   font-size: 1.3rem;
   font-weight: 600;
 }
-
-.live-link {
-  grid-column: 6;
-  grid-row: 20;
-  /* hug the word so the arrow anchors off the right edge of the label */
-  width: fit-content;
-  position: relative;
-  line-height: 3.2rem;
-  font-family: var(--font-mono);
-  font-size: 1.3rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.live-link:hover { color: var(--accent); }
 
 /* ---- compact/tablet: single column with a stable readable type scale ----
    Rulers and grid overlay are hover-driven and need the side
@@ -544,7 +537,9 @@ a { color: inherit; }
 
   .section-label { margin-top: 6.4rem; }
 
-  .project-card { display: block; margin-top: 1.6rem; }
+  .project-card { display: block; margin-top: 1.6rem; padding-right: 0; }
+
+  .project-card--second { margin-top: 4.8rem; }
 
   .project-desc {
     margin-top: 0.8rem;
@@ -556,5 +551,4 @@ a { color: inherit; }
   .footer { margin-top: 6.4rem; }
 
   .page-count { display: inline-block; }
-  .live-link { float: right; }
 }

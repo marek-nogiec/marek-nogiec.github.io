@@ -11,8 +11,8 @@
   "subset": {
     "weights": "400 700",
     "format": "woff2",
-    "bytes": 5552,
-    "sha256": "8527c35b2a099fea61798c97ef159ca5d4d59cff53a985678aed7353f015d8cf",
+    "bytes": 5852,
+    "sha256": "2346d8dd95c3d60035eb697e93b141106a2ef046a298bb0799f5117e67843d1a",
     "retainedNameIds": [
       0,
       1,
@@ -25,14 +25,16 @@
       14
     ]
   },
-  "fallbackCharacters": "‑",
-  "characters": " &-.ACDFGHMNOSTUVWacdefghiklmnoprstuvwy→",
+  "fallbackCharacters": "‑⌘",
+  "characters": " &,-.ABCDFGHMNOSTUVWabcdefghiklmnoprstuvwy→",
   "codepoints": [
     "U+0020",
     "U+0026",
+    "U+002C",
     "U+002D",
     "U+002E",
     "U+0041",
+    "U+0042",
     "U+0043",
     "U+0044",
     "U+0046",
@@ -47,6 +49,7 @@
     "U+0056",
     "U+0057",
     "U+0061",
+    "U+0062",
     "U+0063",
     "U+0064",
     "U+0065",
