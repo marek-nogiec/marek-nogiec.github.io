@@ -35,7 +35,7 @@
     "verify:all": "npm run verify && npm run verify:browser:built"
   },
   "devDependencies": {
-    "@commitlint/cli": "21.2.1",
+    "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.0",
     "@lhci/cli": "0.15.1",
     "@playwright/test": "1.61.1",
